@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+
+body::-webkit-scrollbar{
+  width: 0.2rem;
+}
+
+body::-webkit-scrollbar-thumb{
+  background: black;
+  border-radius: 50px;
+}
+
+body::-webkit-scrollbar-thumb:hover{
+  background: black;
+  border-radius: 50px;
+}
+
+/* 
+section[id] {
+  scroll-margin-top: 130px;
+} */
+
+@layer components {
+  
+  .menu-chat-area{
+    grid-template-areas: 
+     "channels"
+     "contacts"
+     "Navigation"
+    ;
+  }
+
+  .bg-fixed-for-add-channels {
+     background-color: rgba(0, 0, 0, 0.50);
+  }
+}
+
+
+
