@@ -4,10 +4,14 @@ import { FaCamera } from "react-icons/fa";
 export const iconsForProfile = [
     {
         id: "0",
-        icon: <IoIosArrowBack color="#2D9CDB" />
+        icon: <IoIosArrowBack  color="#2D9CDB"  />
     },
+    // {
+    //     id: "1",
+    //     icon: <FaCamera size="30"/>
+    // },
     {
-        id: "0",
+        id: "1",
         icon: <FaCamera size="30" className="absolute top-6 left-8 fill-white hover:fill-blue-500"  />
     }
 ]

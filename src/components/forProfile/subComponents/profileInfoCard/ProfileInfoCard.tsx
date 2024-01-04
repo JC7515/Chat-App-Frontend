@@ -12,8 +12,8 @@ interface exampleOfButtonsOFTypesFile {
 
 
 
-const ProfileInfoCard: React.FC<propsToProfile> = ({ ProfileEditOnHandler, userData}) => {
-    
+const ProfileInfoCard: React.FC<propsToProfile> = ({ ProfileEditOnHandler, userData, WasSendEditFormFunc}) => {
+
     return (
         <section className="w-full h-screen flex flex-col items-center mt-16 gap-14">
             <div className="w-full flex flex-col items-center gap-4">
@@ -38,7 +38,12 @@ const ProfileInfoCard: React.FC<propsToProfile> = ({ ProfileEditOnHandler, userD
                         <p className="text-zinc-400">PHOTO</p>
                     </div>
                     <div className="flex-1 flex flex-row justify-end md:justify-start  ">
-                        <Image src={ userInfo.profileImage } alt="profilePicture" width="90" height="90" className="rounded-xl" />
+                        {!userData.profile_picture ? (<>
+                             <div className="animate-pulse w-[90px] h-[90px] rounded-xl bg-zinc-200"></div>
+                        </>) : (<>
+                            <Image className="rounded-xl" width="90" height="90" src={userData.profile_picture} alt="profilePicture" />
+                        </>)
+                        }
                     </div>
                 </div>
 

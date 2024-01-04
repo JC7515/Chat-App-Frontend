@@ -75,10 +75,10 @@ export const GetUserDataValidated = async () => {
             user_id: user.user_id,
             username: user.username,
             name: user.name,
-            biography: ' ',
+            biography: user.biography,
             phone: user.phone,
             email: user.email,
-            profile_picture: ' ',
+            profile_picture: user.profile_picture,
             create_at: user.create_at,
         }
 
@@ -133,11 +133,11 @@ export const GetNewAccessToken = async () => {
 }
 
 
-export const GetlistOfUserByUsername = async (username: any) => {
+export const GetlistOfUserByUsername = async (username: any, offset: any, limit: any) => {
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
-        const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/users/?usernameToSearch=${username}`
+        const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/users/?usernameToSearch=${username}&offset=${offset}&limit=${limit}`
 
         const resp = await fetch(url, {
             method: 'GET',
@@ -257,9 +257,10 @@ export const CreateNewChatNotification = async (messageData: any) => {
             message_id: messageData.message_id,
             user_id: messageData.user_id,
             chat_id: messageData.chat_id,
+            group_id: messageData.group_id,
             type: messageData.message_type,
             message: messageData.message_content,
-            status: 'unreaded',
+            status: 'unread',
         }
 
         const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/notifications`
@@ -515,7 +516,7 @@ export const ChangeMemberToAdmin = async (userId: any, groupId: any) => {
         
         const role = 'admin' 
 
-        const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/groups/chatParticipant/?userId=${userId}&groupId=${groupId}&role=${role}`
+        const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/members/?userId=${userId}&groupId=${groupId}&role=${role}`
 
         const resp = await fetch(url, {
             method: 'PUT',
@@ -539,13 +540,13 @@ export const ChangeMemberToAdmin = async (userId: any, groupId: any) => {
 
 }
 
-export const DeleteMemberOfGroup = async (userId: any, groupId: any) => {
+export const DeleteMemberOfGroup = async (userId: any, groupId: any, chatId: any) => {
     try {
 
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
         
 
-        const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/members/?userId=${userId}&groupId=${groupId}`
+        const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/members/?userId=${userId}&groupId=${groupId}&chatId=${chatId}`
 
         const resp = await fetch(url, {
             method: 'DELETE',

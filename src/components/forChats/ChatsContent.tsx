@@ -2,25 +2,31 @@
 
 import Image from "next/image"
 import Link from "next/link"
+import { Toaster, toast, useToasterStore } from "react-hot-toast"
 import { useRef, useEffect, useState } from "react"
 import { userInfo } from "../infoUser/InfoUser"
-import { AUTH_EVENT, A_PARTICIPANT_JOINED_THE_CHAT_EVENT, A_PARTICIPANT_UNJOINED_TO_CHAT_EVENT, chatMessages, contactChats, CONTACT_MESSAGE_EVENT, GET_USER_SOCKET_ID_EVENT, GROUP_MESSAGE_EVENT, iconsArrowForNavMenuChats, iconsForChatsPage, infoForNavMenuChat, NEW_GROUP_MEMBER_EVENT, NOTIFICATION_MESSAGE_EVENT } from "./ChatsContent.data"
+import { A_ADMIN_HAS_DELETED_YOU_CHAT_EVENT, A_PARTICIPANT_CHANGED_TO_ROLE_EVENT, A_PARTICIPANT_DELETED_BY_ADMIN_CHAT_EVENT, A_PARTICIPANT_JOINED_THE_CHAT_EVENT, A_PARTICIPANT_LEFT_THE_GROUP_CHAT_EVENT, A_PARTICIPANT_UNJOINED_TO_CHAT_EVENT, chatMessages, contactChats, CONTACT_MESSAGE_EVENT, ErrorToast, GET_USER_SOCKET_ID_EVENT, GROUP_MESSAGE_EVENT, iconsArrowForNavMenuChats, iconsForChatsPage, infoForNavMenuChat, LoadingToast, NEW_GROUP_MEMBER_EVENT, NotificationToast, NOTIFICATION_MESSAGE_EVENT, SuccessToast, ToastPromise } from "./ChatsContent.data"
 import io from 'socket.io-client'
 import { bodyMessage, bodyMessageToBacked, bodyUserData } from "../types"
 import Message from "./subComponents/message/Message"
 import { v4 as uuidv4 } from 'uuid'
-import { ConvertDateToDayFormat, ConvertDateToHourFormat, GetCookieValue, GetCurrentDateString, TransformDateToCorrectFormatString } from "@/helpers"
+import { ConvertDateToDayFormat, ConvertDateToHourFormat, GetCookieValue, GetCurrentDateString, TransformDateToCorrectFormatString, TransformDateToEmitionDate } from "@/helpers"
 import { ACCESS_TOKEN_NAME } from "../forLogin/authCard/AuthCard.data"
 import { useRouter } from "next/navigation"
 import { ChangeMemberToAdmin, CreateNewChatNotification, DeleteAllNotifications, DeleteANotification, DeleteMemberOfGroup, GetAllChatParticipants, GetAllGroupChats, GetAllMembersOfGroup, GetAllMessagesFromAChat, GetAllNotificationsOfChat, GetAllNotificationsOfGroup, GetlistOfUserByUsername, GetUserDataValidated, PermanentlyDeleteGroup, UpdateSocketIdOfUser, UpdateStatusOfChatParticipant } from "@/utils"
 import { iconsArrowForNav } from "../navBar/NavBar.data"
 import { is } from "immer/dist/internal"
+import { GetUserData } from "../forProfile/subComponents/profileInfoCard/ProfileInfoCard.data"
+import { useAppDispatch, useAppSelector } from "@/redux/hooks"
+import { resolve } from "path"
 
 const socket = io(`${process.env.NEXT_PUBLIC_API_URL_DEV}`, { autoConnect: false })
 
 
 const ChatsContent = () => {
 
+    // const userDataApp = useAppSelector(state => state.userDataSlice.userData)
+    // const dispatch = useAppDispatch()
 
     const userDataBody: bodyUserData = {
         user_id: '',
@@ -29,7 +35,7 @@ const ChatsContent = () => {
         biography: '...',
         phone: '...',
         email: '...',
-        profile_picture: '/',
+        profile_picture: '',
         create_at: new Date(),
         chat_id: '',
         chat_type: ''
@@ -47,6 +53,9 @@ const ChatsContent = () => {
         chat_id: '',
         chat_type: ''
     }
+
+    const { toasts } = useToasterStore()
+
 
     const formToJoinChannel: any = useRef()
     const formToCreateChannel: any = useRef()
@@ -99,7 +108,7 @@ const ChatsContent = () => {
     }
 
     const [chatmessages, setChatMessages] = useState<any>([])
-    const [message, setMessage] = useState(' ')
+    const [message, setMessage] = useState('')
 
     const [userData, setUserData] = useState<bodyUserData>(userDataBody)
     const [invitationId, setInvitationId] = useState('')
@@ -135,6 +144,11 @@ const ChatsContent = () => {
 
     const [isUserSocketIDUpdated, setIsUserSocketIDUpdated] = useState(false);
 
+    const [isUserAdminToGroup, setIsUserAdminToGroup] = useState(false);
+
+    const [offsetToSearchNewContacts, setOffsetToSearchNewContacts] = useState(0);
+    const [limitOfNewContactsPerPage, setLimitOfNewContactsPerPage] = useState(20);
+
 
 
 
@@ -159,15 +173,18 @@ const ChatsContent = () => {
 
     const [contactChatsList, setContactChatsList] = useState([])
     const [groupChatsList, setGroupChatsList] = useState([groupBody])
+    const [groupsList, setGroupsList] = useState([groupBody])
+
+    const [groupsListQuery, setGroupsListQuery] = useState<any>('')
+    const [contactsListQuery, setContactsListQuery] = useState<String>(' ')
 
 
     const [userGotNewInvitationId, setUserGotNewInvitationId] = useState(false)
 
-    const [groupData, setGroupData] = useState(groupBody.group)
+    const [groupData, setGroupData] = useState<any>(groupBody.group)
 
     const changeValueOfMessage = (e: any) => {
         e.preventDefault()
-
 
         setMessage(e.target.value)
     }
@@ -196,13 +213,15 @@ const ChatsContent = () => {
         const messageObjectToBackend: bodyMessageToBacked = {
             message_id: messageId,
             chat_id: userData.chat_id,
+            group_id: groupData.group_id,
             user_id: userData.user_id,
             message_content: message,
             timestamp: creationDateOfMessageForBackend, //aqui necesitamos crea una funcion para que nos envie el time stamp con minutos segundo y milisegundo
             is_read: false,
             read_timestamp: creationDateOfMessageForBackend, ////aqui necesitamos crea una funcion para que nos envie el time stamp con minutos segundo y milisegundo
             message_type: messageType,
-            username: userData.username
+            username: userData.username,
+            profile_picture: userData.profile_picture
         }
 
         // aqui comprobamos que la propiedad de chat_type tenga el dato group o contact, y si no lo tiene salimos del flujo para no ejecutar los eventos sockets
@@ -216,13 +235,17 @@ const ChatsContent = () => {
 
         groupData.members.forEach((member: any) => {
 
-            if (member.status === 'inactive') {
 
+            // aqui emitimos la notificacion para todos los usuario del grupo, ya que en la funcion NotificationMessageRecived se estara haciendo el filtrado de los uaurios, si se muestran las notificaciones con un toast o solo aparecen como un signo de mensajes no leidos  
+            if (member.status === 'inactive') {
                 const notificationData = {
                     socketId: member.user.socket_id,
                     messageId: messageId,
                     userId: member.user.user_id,
                     chatId: userData.chat_id,
+                    creatorProfilePicture: userData.profile_picture,
+                    creatorUserId: userData.user_id,
+                    creatorUserName: userData.username,
                     groupId: member.group_id,
                     type: 'text',
                     message: message,
@@ -247,7 +270,7 @@ const ChatsContent = () => {
             date: creationDayOfMessage,
             hour: creationHourOfMessage,
             message_content: message,
-            profile_image: '',
+            profile_picture: userData.profile_picture,
             message_type: 'text'
         }
 
@@ -261,8 +284,12 @@ const ChatsContent = () => {
 
 
     const HandlerCreateNewChannel = async (e: any) => {
+
         try {
             e.preventDefault()
+
+            // aqui notificacion que indica al usuario que la accion se esta procesando
+            const loadingToast = LoadingToast('Creating Group', "top-center")
 
             const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -289,6 +316,8 @@ const ChatsContent = () => {
                 }
             })
 
+
+
             const data = await resp.json()
 
             if (data.data.status === "FAILED") {
@@ -296,6 +325,11 @@ const ChatsContent = () => {
                 throw data.data.error // { error: { message: 'error...'} }
             }
 
+            // aqui retrasamos por un segundo la eliminacion del loading toast, para que no desaparesca tan rapido en la vista
+            await new Promise((resolve) => setTimeout(() => { resolve('') }, 1000))
+
+
+            toast.dismiss(loadingToast)
 
             // aqui una vez acabado el proceso anterior se procede a ocultar la card de creacion de grupo invitacion de la vista
             setIsOpenChannelCreationCard(false)
@@ -311,17 +345,26 @@ const ChatsContent = () => {
 
             setGroupChatsList(groupsObtained)
 
+            // aqui notificacion que indica al usuario que la accion se realizo con exito
+            SuccessToast('New Group Created', "top-center")
 
-        } catch (error) {
+            formToCreateChannel.current.reset()
+
+        } catch (error: any) {
             console.log(error)
-            // aqui agregaremos logica de notificaciones toast
+            // aqui agregaremos logica de notificaciones toast en caso de error
+            ErrorToast(error.error?.message || error.error, "top-center")
         }
+
     }
 
 
     const HandlerJoinToChannel = async (e: any) => {
         try {
             e.preventDefault()
+
+            // aqui notificacion que indica al usuario que la accion se esta procesando
+            const loadingToast = LoadingToast('Joining To Group', "top-center")
 
             const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -351,11 +394,21 @@ const ChatsContent = () => {
             }
 
 
+            // aqui retrasamos por un segundo la eliminacion del loading toast, para que no desaparesca tan rapido en la vista
+            await new Promise((resolve) => setTimeout(() => { resolve('') }, 500))
+
+
+            toast.dismiss(loadingToast)
+
+
+
             console.log('se integro nuevo usuario dentro del grupo, se procede a cerrar la card')
             // aqui una vez acabado el proceso anterior se procede a ocultar la card de union a grupo de la vista
             setIsOpenJoinCardToChat(false)
 
 
+
+            // aqui procedemos a emitir un evento de tipo NEW_GROUP_MEMBER_EVENT para que ah todos los usuario que esten conectados a grupo en ese mismo momento les aparesca que el nuevo usuario se a unido al grupo
             const dataForEmit = {
                 group_id: data.data.group_id,
                 chat_id: data.data.chat_id,
@@ -374,10 +427,16 @@ const ChatsContent = () => {
             // si todo salio bien la peticion nos deberia devolver un status OK sin ninguna data incluida
             // console.log(data.status) 
 
+            // aqui notificacion que indica al usuario que la accion se realizo con exito
+            SuccessToast('Joined To Group', "top-center")
 
-        } catch (error) {
+            // aqui reseteamos los valores de todos lo inputs del formulario  
+            formToJoinChannel.current.reset()
+
+        } catch (error: any) {
             console.log(error)
-            // aqui agregaremos logica de notificaciones toast
+            // aqui agregaremos logica de notificaciones toast en caso de error
+            ErrorToast(error.error?.message || error.error, "top-center")
         }
     }
 
@@ -393,12 +452,19 @@ const ChatsContent = () => {
 
             setSearchNewContactValue(valueOfSearchBar)
 
-            const usersObtained: any = await GetlistOfUserByUsername(valueOfSearchBar)
+            const offset = offsetToSearchNewContacts * limitOfNewContactsPerPage
 
-            if (usersObtained.length > 0) setListOfNewContactSearched(usersObtained)
-            console.log(listOfNewContactSearched)
+            const usersObtained: any = await GetlistOfUserByUsername(valueOfSearchBar, offset, limitOfNewContactsPerPage)
+
+            if (usersObtained.length > 0) {
+                setListOfNewContactSearched(usersObtained)
+            } else {
+                setListOfNewContactSearched([])
+            }
+            console.log(usersObtained)
         } catch (error) {
-
+            console.log(error)
+            // aqui podemos aplicar un toast en caso de que haya un error
         }
     }
 
@@ -440,10 +506,17 @@ const ChatsContent = () => {
     }
 
     const OpenCardToJoinChannel = () => {
+        // aqui reseteamos los valores de todos lo inputs del fomulario cada que salgamos de la card
+        formToJoinChannel.current.reset()
+        setInvitationId('')
+
         setIsOpenJoinCardToChat(true)
         setIsOpenCardToSelectOptions(false)
+
     }
     const OpenCardToCreateChannel = () => {
+        // aqui lo que hacemos es resetear todos los valores de lo inputs y textarea que se encuentran dentro del formulario para crear un nuevo channel
+        formToCreateChannel.current.reset()
         setIsOpenChannelCreationCard(true)
         setIsOpenCardToSelectOptions(false)
     }
@@ -454,9 +527,14 @@ const ChatsContent = () => {
     }
 
     const OpenCardOfChangeRoleOfMember = (e: any) => {
-        setIsOpenCardToChangeRoleOfMember(true)
         const memberSelected = e.target.id
-        setUserIdToChangeRoleOfMember(memberSelected)
+
+        const isAdminSelectMemberToGroup = groupData.members.find((member: any) => member.user.user_id === memberSelected && member.role === 'member')
+
+        if (isAdminSelectMemberToGroup) {
+            setIsOpenCardToChangeRoleOfMember(true)
+            setUserIdToChangeRoleOfMember(memberSelected)
+        }
     }
 
     const OpenLeaveToGroupCard = () => {
@@ -474,13 +552,14 @@ const ChatsContent = () => {
 
     const CloseCardOfAddContact = () => {
         setIsOpenAddContactCard(false)
-        setUserDataSelected(' ')
+        setUserDataSelected('')
         setListOfNewContactSearched([])
         setSearchNewContactValue('')
     }
 
     const CloseCardOfInvitationIdCreated = () => {
         setWasNewIvitationIdCreated(false)
+        setInvitationId('')
     }
 
     const CloseCardOfChangeRoleOfMember = () => {
@@ -492,6 +571,57 @@ const ChatsContent = () => {
         setIsOpenCardToLeaveToGroup(false)
     }
 
+    const SearchContactsOnNextPage = async () => {
+
+        const newValue = offsetToSearchNewContacts + 1
+
+        // setOffsetToSearchNewContacts((prevValue: any) => prevValue)
+
+        const offset = newValue * limitOfNewContactsPerPage
+
+        const usersObtained: any = await GetlistOfUserByUsername(searchNewContactValue, offset, limitOfNewContactsPerPage)
+
+
+        // aqui estamos validando que en la siguiente pagina haya elementos, ya que si no las ahi, queremos que el usuario ya no puedo seguir pasando mas paginas, y solo se muestre la ultima pagina que tenia elemntos
+
+        if (usersObtained.length > 0) {
+            // aqui si la funcion GetlistOfUserByUsername devuelve un array con elemento mayor a 0 quiero que se refleje como una pagina nueva
+            setListOfNewContactSearched(usersObtained)
+            setOffsetToSearchNewContacts(newValue)
+        } else {
+            // aqui si la funcion GetlistOfUserByUsername devuelve un array igual a cero o vacio, quiero que no se muestre este array y se muestre el array anterior
+            setListOfNewContactSearched((prevList: any) => [...prevList])
+            setOffsetToSearchNewContacts((prevValue: any) => prevValue)
+        }
+        console.log(usersObtained)
+
+
+    }
+
+    const SearchContactsOnPreviousPage = async () => {
+
+        if (offsetToSearchNewContacts === 0) return
+
+
+        const newValue = offsetToSearchNewContacts - 1
+
+        // setOffsetToSearchNewContacts((prevValue: any) => prevValue)
+
+        const offset = newValue * limitOfNewContactsPerPage
+
+        const usersObtained: any = await GetlistOfUserByUsername(searchNewContactValue, offset, limitOfNewContactsPerPage)
+
+
+        setListOfNewContactSearched(usersObtained)
+        setOffsetToSearchNewContacts(newValue)
+
+
+    }
+
+
+    const DeleteContactSelected = () => {
+        setUserDataSelected(userFound)
+    }
 
     const MenuOpenHandler = () => {
         if (!menuOpen) {
@@ -525,7 +655,7 @@ const ChatsContent = () => {
         if (notificationsObtained) {
             const groupListModificated = groupsObtained.map((groupData: any) => {
 
-                const notifications = notificationsObtained.filter((notification: any) => notification.chat_id === groupData.group.chat_id)
+                const notifications = notificationsObtained.filter((notification: any) => (notification.chat_id === groupData.group.chat_id))
 
 
                 const notificonsNumber = notifications.length
@@ -539,8 +669,9 @@ const ChatsContent = () => {
 
             })
 
-            console.log(groupListModificated)
-            setGroupChatsList(groupListModificated)
+            const groupListOrdered = groupListModificated.sort((a: any, b: any) => b.notifications_number - a.notifications_number)
+
+            setGroupChatsList(groupListOrdered)
 
         } else {
             setGroupChatsList(groupsObtained)
@@ -554,7 +685,7 @@ const ChatsContent = () => {
         // aqui emitimos un evento que le llegara a todos los demas miembros del grupo para que en su pantalla figura que el usuario se ah desconectado de el chat
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
-        socket.emit(A_PARTICIPANT_JOINED_THE_CHAT_EVENT, { authToken: `Bearer ${accessToken}`, chatId: userData.chat_id })
+        socket.emit(A_PARTICIPANT_UNJOINED_TO_CHAT_EVENT, { authToken: `Bearer ${accessToken}`, chatId: userData.chat_id })
 
 
 
@@ -786,24 +917,22 @@ const ChatsContent = () => {
             setIsUserInGetOldMessagesArea(false)
             // aqui logica para eliminar la notificaciones de mensajes de la db, si el usuario llega a leer los mensajes no leidos en el momento
 
-            const firtMessageInTheList = chatmessages.find((message: any) => message.message_id)
+            const firstMessageInTheList = chatmessages.find((message: any) => message.message_id)
 
             const messagesLimit = 20
-            const creationDate = TransformDateToCorrectFormatString(firtMessageInTheList.timestamp)
+            const creationDate = TransformDateToCorrectFormatString(firstMessageInTheList.timestamp)
 
             const oldMessagesObtained: any = await GetAllMessagesFromAChat(userData.chat_id, messagesLimit, creationDate)
 
+            // Aqui validamos que la lista de mensajes antiguos que se solicito, ya exista en el array actual de mensajes, para que se evite que el cliente vea una duplicacion de los mensajes antiguos del chat
             const listMessageAlreadyExist = oldMessagesObtained.find((message: any) => message.message_id === chatmessages[0].message_id)
 
             if (listMessageAlreadyExist) return
 
-            const oldMessagesModified = oldMessagesObtained.map((message: any) => {
+            const oldMessagesModified = oldMessagesObtained.map((message: any, index: number) => {
                 //  aqui pasamos el timestamp recibido de cada mensaje a funciones que convierten la hora y fecha de creacion del mensaje de timestamp a string 
 
-                // console.log(message.timestamp)
                 const timestampToDate = new Date(message.timestamp)
-
-                // console.log(timestampToDate)
 
 
                 const creationHourOfMessage = ConvertDateToHourFormat(timestampToDate)
@@ -820,27 +949,125 @@ const ChatsContent = () => {
                     date: creationDayOfMessage,
                     hour: creationHourOfMessage,
                     message_content: message.message_content,
-                    profile_image: userInfo.profileImage,
+                    profile_picture: message.user_data.profile_picture,
                     message_type: message.message_type,
                     timestamp: timestampToDate.getTime()
                 }
+
+
             })
 
 
-            console.log(creationDate)
-            console.log(firtMessageInTheList.timestamp)
-            console.log(firtMessageInTheList)
-            console.log(oldMessagesObtained)
+
+            const allMessagesForUpdate = await new Promise((resolve: any) => {
+
+
+                const allMessages = [...oldMessagesModified, ...chatmessages]
+
+                const arrayOfMessagesToReturn: any = []
+                const arrayOfMemberJoined: any = []
+
+                console.log(allMessages)
+
+                // aqui estamos integrando dentro del array de messages la fecha de emicion de cada bloque de mensajes  
+
+                allMessages.forEach((message: any, index: number) => {
+
+                    // console.log(allMessages)
+                    // console.log(message)
+
+
+                    // aqui esta la fecha del mensaje actual y del mensaje anterior para hacer la comparacion 
+                    const beforeIndex = index === 0 ? index : index - 1
+
+                    if (message.message_type === "unionDate") {
+                        console.log('se encontro que el elemento anterior no es de tipo texto')
+                        arrayOfMemberJoined.push(message)
+                        return
+                    }
+
+                    if (index === 0) {
+                        arrayOfMessagesToReturn.push(message)
+                        return
+                    }
+
+                    if (allMessages[beforeIndex].message_type !== 'text' || message.message_type !== 'text') {
+                        console.log('se encontro que el elemento anterior no es de tipo texto')
+                        arrayOfMessagesToReturn.push(message)
+                        return
+                    }
+
+
+                    // console.log(beforeIndex)
+
+                    const currentTimestampValue: any = message.timestamp
+
+
+                    // console.log(allMessages[beforeIndex].timestamp)
+                    const beforeTimestampToDate = new Date(allMessages[beforeIndex].timestamp)
+                    // console.log(beforeTimestampToDate)
+
+
+                    // console.log(currentTimestampValue)
+                    const currentTimestampToDate = new Date(currentTimestampValue)
+                    // console.log(currentTimestampToDate)
+
+
+                    // aqui estamos validando que la fecha de dia del mensaje anterior sea diferente al de el actual, para saber si la fecha actual ya no es la misma que la de lo mensajes anteriores 
+                    const isMessageHasDiferentDate = beforeTimestampToDate.getDay() !== currentTimestampToDate.getDay()
+
+                    // console.log(currentTimestampValue)
+
+                    const emitionDate = TransformDateToEmitionDate(currentTimestampValue)
+
+                    // console.log(emitionDate)
+
+                    if (isMessageHasDiferentDate && emitionDate) {
+
+                        const dateOfEmitionNextMessages: any = {
+                            emition_id: uuidv4(),
+                            emition_date: emitionDate,
+                            message_type: 'emitionDate'
+                        }
+
+                        // console.log(dateOfEmitionNextMessages)
+
+                        arrayOfMessagesToReturn.push(dateOfEmitionNextMessages)
+
+                        // console.log('se aplico una fecha de emition de mensajes')
+                    }
+
+                    arrayOfMessagesToReturn.push(message)
+
+                    return
+                })
+
+                resolve([...arrayOfMemberJoined, ...arrayOfMessagesToReturn])
+            })
+
+
+
+
+            // aqui ponemos logica para que en la vista aparesca primero siempre el mensaje de los usuarios unidos y despues los mensajes, la logica es simple, extraemos con algun metodo todos los elementos dentro del array chatMassages que tengan la propiedad union_date y los guardamos en como array en una variable, para luego utilizar otra metodo que elimine todos los elementos dentro del array chatmessages, y nos devuelva ese copia de array sin los mensajes que tenga propiedad union_date, para luego combinar el array de todos los elementos union_date con el array de oldmessages y luego por ultimo convinarlo con el el array inicial del cual eliminamos todos los elementos de tipo union_date, resultado final deveria verse asi: [...arrayElemsUnionType, ...arrayOlmessages, ...arrayPrevMessageWithOutElemsUnionType]  
+
+
+            // console.log(creationDate)
+            // console.log(firstMessageInTheList.timestamp)
+            // console.log(firstMessageInTheList)
+            // console.log(oldMessagesObtained)
             if (oldMessagesModified.length > 0) {
                 setChatMessages((prevMessages: any) => {
                     if (!listMessageAlreadyExist) {
-                        return [...oldMessagesModified, ...prevMessages]
+                        return allMessagesForUpdate
                     } else {
                         return [...prevMessages]
                     }
 
                 })
+
             }
+
+
         }
 
 
@@ -858,12 +1085,22 @@ const ChatsContent = () => {
                 ObserverForGetOldMessagesArea.disconnect()
             }
         }
+
+
     }
+
+
+
 
     //#region 
 
     const DeleteMemberOfChat = async () => {
         try {
+            console.log(groupData)
+
+            const memberIdToDelete = userIdToChangeRoleOfMember
+            // aqui notificacion que indica al usuario que la accion se esta procesando
+            const loadingToast = LoadingToast('loading', "top-center")
 
             // aqui validamos que el miembro que este realizando esta accion sea un administrador 
             const thisUserIsAdmin = groupData.members.find((member: any) => member.user.user_id === userData.user_id)
@@ -873,27 +1110,64 @@ const ChatsContent = () => {
             }
 
             // aqui validamos que el administrador no este eliminando a otro administrado, ya que eso no se puede
-            const memberFound = groupData.members.find((member: any) => member.user.user_id === userIdToChangeRoleOfMember)
+            const memberFound = groupData.members.find((member: any) => member.user.user_id === memberIdToDelete)
 
             if (memberFound.role === 'admin') {
                 throw { error: { message: 'Cant remove group administrators' } }
             }
 
             // aqui se ejecuta la funcion de eliminar miembro del grupo 
-            await DeleteMemberOfGroup(userIdToChangeRoleOfMember, groupData.group.group_id)
+            await DeleteMemberOfGroup(memberIdToDelete, groupData.group_id, groupData.chat_id)
 
+
+            // aqui retrasamos por un segundo la eliminacion del loading toast, para que no desaparesca tan rapido en la vista
+            await new Promise((resolve) => setTimeout(() => { resolve('') }, 500))
+
+
+            toast.dismiss(loadingToast)
+
+
+            // aqui emitimos un evento para que todos los miembros conectados al chat se les actualize la nueva lista de miembros del grupo, sin el miembro recientemente eliminado
+            const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
+
+            const dataForEmit = { authToken: `Bearer ${accessToken}`, memberIdDeleted: memberIdToDelete, chatId: userData.chat_id }
+
+            socket.emit(A_PARTICIPANT_DELETED_BY_ADMIN_CHAT_EVENT, dataForEmit)
+
+            // aqui validamos que el administrador no este eliminando a otro administrado, ya que eso no se puede
+            const memberListUpdated = groupData.members.filter((member: any) => member.user.user_id !== memberIdToDelete)
+
+            console.log(memberListUpdated)
+
+            const newGroupData = {
+                ...groupData,
+                members: memberListUpdated
+            }
+
+            setGroupData(newGroupData)
             setUserIdToChangeRoleOfMember('')
             setIsOpenCardToChangeRoleOfMember(false)
 
+
+            console.log(groupData.members)
             // aqui podemos poner una notificacion toast que indique que se realizo la eliminacion con exito
-        } catch (error) {
+
+            // aqui notificacion que indica al usuario que la accion se realizo con exito
+            SuccessToast('Member Deleted', "top-center")
+
+
+        } catch (error: any) {
             console.log(error)
             // aqui ponemos la logica para mandar una notificacion del error por medio de un toast
+            ErrorToast(error.error?.message || error.error, "top-center")
         }
     }
 
     const ConvertMemberToAdmin = async () => {
         try {
+
+            // aqui notificacion que indica al usuario que la accion se esta procesando
+            const loadingToast = LoadingToast('loading', "top-center")
 
             // aqui validamos que el miembro que este realizando esta accion sea un administrador 
             const thisUserIsAdmin = groupData.members.find((member: any) => member.user.user_id === userData.user_id)
@@ -911,15 +1185,58 @@ const ChatsContent = () => {
 
 
             // aqui se ejecuta la funcion de convetir miembro del grupo a administrador 
-            await ChangeMemberToAdmin(userIdToChangeRoleOfMember, groupData.group.group_id)
+            await ChangeMemberToAdmin(userIdToChangeRoleOfMember, groupData.group_id)
+
+
+            // aqui retrasamos por un segundo la eliminacion del loading toast, para que no desaparesca tan rapido en la vista
+            await new Promise((resolve) => setTimeout(() => { resolve('') }, 500))
+
+
+            toast.dismiss(loadingToast)
+
+
+            // aqui emitimos un evento para que todos los miembros conectados al chat se les actualize el nuevo role que tiene el miembro ascendido a admin
+            const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
+
+            const dataForEmit = { authToken: `Bearer ${accessToken}`, memberIdConvertedToAdmin: userIdToChangeRoleOfMember, chatId: groupData.chat_id }
+
+            socket.emit(A_PARTICIPANT_CHANGED_TO_ROLE_EVENT, dataForEmit)
+
+
+
+            // aqui actualizamos el role del miembro que fue ascendido a admin, para el administrador
+            const memberListUpdated = groupData.members.map((member: any) => {
+
+                if (member.user.user_id === userIdToChangeRoleOfMember) {
+
+                    return { ...member, role: 'admin' }
+
+                }
+
+                return member
+            })
+
+
+
+            const newGroupData = {
+                ...groupData,
+                members: memberListUpdated
+            }
+
+            setGroupData(newGroupData)
 
             setUserIdToChangeRoleOfMember('')
             setIsOpenCardToChangeRoleOfMember(false)
 
             // aqui podemos poner una notificacion toast que indique que se realizo el cambio de rol con exito
-        } catch (error) {
+
+            // aqui notificacion que indica al usuario que la accion se realizo con exito
+            SuccessToast('Member converted to admin', "top-center")
+
+        } catch (error: any) {
             console.log(error)
             // aqui ponemos la logica para mandar una notificacion del error por medio de un toast 
+            ErrorToast(error.error?.message || error.error, "top-center")
         }
     }
 
@@ -935,19 +1252,37 @@ const ChatsContent = () => {
     }
 
 
-    const LeaveTheGroup = async (e: any) => {
+    const LeaveTheGroup = async () => {
         try {
 
-            const groupId = e.target.id
+            // aqui notificacion que indica al usuario que la accion se esta procesando
+            const loadingToast = LoadingToast('Creating Group', "top-center")
 
-            const groupFound = groupChatsList.find((group) => group.group.group_id === groupId)
+            // aqui retrasamos por un segundo la eliminacion del loading toast, para que no desaparesca tan rapido en la vista
+            await new Promise((resolve) => setTimeout(() => { resolve('') }, 1000))
 
-            if (!groupFound) {
-                throw { error: { message: 'group not found' } }
+            const groupId = groupData.group_id
+            const chatId = groupData.chat_id
+
+            toast.dismiss(loadingToast)
+
+            if (!groupId) {
+                console.log('group not found')
+                throw { error: { message: 'An unexpected error occurred, try again' } }
             }
 
+
             // aqui eliminamos al miembro del grupo que decidio salirse del grupo voluntariamente
-            await DeleteMemberOfGroup(userData.user_id, groupId)
+            await DeleteMemberOfGroup(userData.user_id, groupId, chatId)
+
+
+            // aqui emitimos un evento para que la lista de miembros del grupo se actulize sin el miembro que se retiro, cuando el usuario se retire del grupo voluntarimente
+            const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
+
+            const dataForEmit = { authToken: `Bearer ${accessToken}`, userId: userData.user_id, chatId: userData.chat_id }
+
+            socket.emit(A_PARTICIPANT_LEFT_THE_GROUP_CHAT_EVENT, dataForEmit)
+
 
             // aqui obtenemos de nuevo todos los grupos de los que el usuario forma parte sin el grupo recien eliminado, para luego actualizar la vista
             const userGroupsObtained = await GetAllGroupChats()
@@ -960,16 +1295,45 @@ const ChatsContent = () => {
             if (numberOfMembersInGroup.length === 0) {
 
                 // este funcion eleminara permanente el grupo que ya no tenga integrantes y todos los mensajes del grupo 
-                await PermanentlyDeleteGroup(groupFound.group.chat_id, groupId)
+                await PermanentlyDeleteGroup(groupData.chat_id, groupId)
 
             }
 
+            CloseLeaveToGroupCard()
+            BackToMenuHandler()
 
-        } catch (error) {
+            // aqui notificacion que indica al usuario que la accion se realizo con exito
+            SuccessToast('you left the group successfully', "top-center")
+
+
+        } catch (error: any) {
             console.log(error)
             // aqui ponemos la logica para mandar una notificacion del error por medio de un toast
+            ErrorToast(error.error?.message || error.error, "top-center")
         }
     }
+
+
+
+    const FilterGroupsList = async (e: any) => {
+
+        const inputValue = e.target.value
+
+        setGroupsListQuery(inputValue)
+
+        if (inputValue === '') {
+            const groupsListObtained = await GetAllGroupChats()
+            setGroupChatsList((prevList: any) => groupsListObtained)
+            return
+        }
+
+
+        const groupsFiltered = groupChatsList.filter((item: any) => item.group.group_name.indexOf(inputValue) === 0)
+
+        setGroupChatsList((prevList: any) => groupsFiltered)
+
+    }
+
 
     useEffect(() => {
         // no-op if the socket is already connected
@@ -989,6 +1353,12 @@ const ChatsContent = () => {
         try {
 
             const RunAllFunc = async () => {
+
+                const resp: any = await GetUserData(router)
+                setUserData(resp)
+
+                console.log(resp)
+
 
                 // Aqui estamos validando que ancgo de la pagina se mayor que 768 para que cuando el usuario este en dispositivos como laptops el menu del chat deje de estar en absolute y no se oculte
                 if (screen.width > 768) setMenuOpen(true)
@@ -1062,8 +1432,11 @@ const ChatsContent = () => {
 
                     })
 
-                    console.log(groupListModificated)
-                    setGroupChatsList(groupListModificated)
+                    const groupListOrdered = groupListModificated.sort((a: any, b: any) => b.notifications_number - a.notifications_number)
+
+
+                    console.log(groupListOrdered)
+                    setGroupChatsList(groupListOrdered)
 
                 } else {
                     setGroupChatsList(groupsObtained)
@@ -1105,9 +1478,13 @@ const ChatsContent = () => {
 
                 console.log(isUserSocketIDUpdated)
                 // console.log(userData.chat_id)
+
+
+
+
+
                 // aqui salimos del flujo en el caso de que el cliente no haya seleccionado ningun chat y la propiedad chat_id este vacia
                 if (!userData.chat_id) return
-
 
 
                 /* ************ Aqui emitimos el evento de tipe participant joined to chat y actualizamos el status del usuario recien ingresado ******* */
@@ -1144,6 +1521,11 @@ const ChatsContent = () => {
 
                 console.log('se volvio a ejecutar el useEffect con dependencias userData.chat_id, numberOfMembers')
 
+                const isUserAdmin = groupData.members.find((member: any) => member.user.user_id === userData.user_id && member.role === 'admin')
+
+                setIsUserAdminToGroup(isUserAdmin)
+
+
                 /* ************ Aqui obtenemos la lista de mensajes y los modificamos para que sean compatibles con el componente Message y se muestren en la vista ******* */
 
                 // aqui obtenemos todos lo mesajes antiguos del chat de la db para mostrarlos en la vista  
@@ -1159,22 +1541,18 @@ const ChatsContent = () => {
                 console.log(creationDate)
                 console.log(messagesList)
                 // aqui estamos mapeando el array de mensajes obtenidos a la estructura de objeto que acepta el componente message
-                const messagesListModified = messagesList.map((message: any) => {
+                const messagesListModified = messagesList.map((message: any, index: any) => {
                     //  aqui pasamos el timestamp recibido de cada mensaje a funciones que convierten la hora y fecha de creacion del mensaje de timestamp a string 
-
-                    // console.log(message.timestamp)
-                    const timestampToDate = new Date(message.timestamp)
-
-                    // console.log(timestampToDate)
+                    const currentTimestampToDate = new Date(message.timestamp)
 
 
-                    const creationHourOfMessage = ConvertDateToHourFormat(timestampToDate)
+                    const creationHourOfMessage = ConvertDateToHourFormat(currentTimestampToDate)
                     // console.log(creationHourOfMessage)
 
-                    const creationDayOfMessage = ConvertDateToDayFormat(timestampToDate)
+                    const creationDayOfMessage = ConvertDateToDayFormat(currentTimestampToDate)
                     // console.log(creationDayOfMessage)
 
-                    return {
+                    const messageToReturn = {
                         message_id: message.message_id,
                         chat_id: message.chat_id,
                         user_id: message.user_id,
@@ -1182,23 +1560,114 @@ const ChatsContent = () => {
                         date: creationDayOfMessage,
                         hour: creationHourOfMessage,
                         message_content: message.message_content,
-                        profile_image: userInfo.profileImage,
+                        profile_picture: message.user_data.profile_picture,
                         message_type: message.message_type,
-                        timestamp: timestampToDate.getTime()
+                        timestamp: currentTimestampToDate.getTime()
                     }
+
+
+                    return messageToReturn
+
                 })
 
 
+                const getMessages = await new Promise((resolve: any) => {
+
+
+                    const allMessages = [...ParticipantsListModified, ...messagesListModified]
+
+                    const arrayOfMessagesToReturn: any = []
+                    const arrayOfMemberJoined: any = []
+
+                    // console.log(allMessages)
+
+                    // aqui estamos integrando dentro del array de messages la fecha de emicion de cada bloque de mensajes  
+
+                    allMessages.forEach((message: any, index: number) => {
+
+                        // console.log(allMessages)
+                        // console.log(message)
+
+
+                        // aqui esta la fecha del mensaje actual y del mensaje anterior para hacer la comparacion 
+                        const beforeIndex = index === 0 ? index : index - 1
+
+                        if (message.message_type === "unionDate") {
+                            console.log('se encontro que el elemento anterior no es de tipo texto')
+                            arrayOfMemberJoined.push(message)
+                            return
+                        }
+
+                        if (index === 0) {
+                            arrayOfMessagesToReturn.push(message)
+                            return
+                        }
+
+                        if (allMessages[beforeIndex].message_type !== 'text' || message.message_type !== 'text') {
+                            console.log('se encontro que el elemento anterior no es de tipo texto')
+                            arrayOfMessagesToReturn.push(message)
+                            return
+                        }
+
+
+                        // console.log(beforeIndex)
+
+                        const currentTimestampValue: any = message.timestamp
+
+
+                        // console.log(allMessages[beforeIndex].timestamp)
+                        const beforeTimestampToDate = new Date(allMessages[beforeIndex].timestamp)
+                        // console.log(beforeTimestampToDate)
+
+
+                        // console.log(currentTimestampValue)
+                        const currentTimestampToDate = new Date(currentTimestampValue)
+                        // console.log(currentTimestampToDate)
+
+
+                        // aqui estamos validando que la fecha de dia del mensaje anterior sea diferente al de el actual, para saber si la fecha actual ya no es la misma que la de lo mensajes anteriores 
+                        const isMessageHasDiferentDate = beforeTimestampToDate.getDay() !== currentTimestampToDate.getDay()
+
+                        // console.log(currentTimestampValue)
+
+                        const emitionDate = TransformDateToEmitionDate(currentTimestampValue)
+
+                        // console.log(emitionDate)
+
+                        if (isMessageHasDiferentDate && emitionDate) {
+
+                            const dateOfEmitionNextMessages: any = {
+                                emition_id: uuidv4(),
+                                emition_date: emitionDate,
+                                message_type: 'emitionDate'
+                            }
+
+                            // console.log(dateOfEmitionNextMessages)
+
+                            arrayOfMessagesToReturn.push(dateOfEmitionNextMessages)
+
+                            // console.log('se aplico una fecha de emition de mensajes')
+                        }
+
+                        arrayOfMessagesToReturn.push(message)
+
+                        return
+                    })
+
+                    resolve([...arrayOfMemberJoined, ...arrayOfMessagesToReturn])
+                })
+
+                console.log(messagesListModified)
+
                 // aqui combinamos en un mismo array los arrays de chatParticipantsList y messagesListModified para luego ordenarlos por el metodo sort()
-                const combineOflists = [...ParticipantsListModified, ...messagesListModified]
+                const combineOflists: any = getMessages
 
-                const orderlistForDate = combineOflists.sort((a, b) => a.timestamp - b.union_date)
+                const orderlistForDate = combineOflists.sort((a: any, b: any) => a.union_date - b.timestamp)
 
-                console.log(orderlistForDate)
+                // console.log(orderlistForDate)
 
                 // aqui actualizamos la lista de mensajes con la notificacion de que un nuevo intregrante se unio en el grupo y los mensajes del grupo
                 setChatMessages(orderlistForDate)
-
 
             }
 
@@ -1260,7 +1729,12 @@ const ChatsContent = () => {
                 if (!isUserInRecentMessagesArea) {
                     console.log('se esta ejecutando esto igual')
 
-                    const notificationId = await CreateNewChatNotification(message)
+                    // aqui estamos creando un nuevo objeto con el valor de user_id cambiado a el id de usuario al cual le llego el mensaje, para que este sea guardado en la tabla de notificaciones como una notificacion unica de este usuario y su id
+                    const notificacionBody = {
+                        ...message,
+                        user_id: userData.user_id
+                    }
+                    const notificationId = await CreateNewChatNotification(notificacionBody)
 
 
                     // aqui aumentamos el valor de numberOfUnreadMessages si el usuario sigue estando fuera del area de los mensajes recientes
@@ -1351,11 +1825,28 @@ const ChatsContent = () => {
 
 
 
-                /* *********** aqui actualizamos lista de miembros mas nuevo miembro, para miembros antiguos  *********** */
+                /* *********** aqui actualizamos lista de miembros mas el nuevo miembro, para miembros antiguos  *********** */
                 // aqui estamos actualizando la lista de miembros en tiempo real para cada uno de los usuarios dentro del grupo, cada que un nuevo usuario se haya unido recientemente al grupo por medio de la funcion HandlerJoinToChannel(), la lista de miembros cada uno de los usuarios antiguos del grupo, se actualizara, agregando al nuevo usuario recien unido.
-                const membersList = await
+
+                const allParticipantsObtained = chatParticipantsList.chat_participants
+
+                const membersListObtained = await
                     GetAllMembersOfGroup(newMemberData.group_id)
 
+                // aqui estamos mapeando los datos para obtener un nuevo array con el nuevo miembro del grupo y con los status de los miembros actualizado, mas el del nuevo miembro que parecera siempre en inactive  
+                const membersList = membersListObtained.map((member: any,) => {
+                    const participantFound = allParticipantsObtained.filter((participant: any) => member.user.user_id === participant.user_id)
+
+                    if (participantFound) {
+                        return {
+                            ...member,
+                            status: participantFound[0].status
+                        }
+                    }
+                })
+
+
+                // aqui le asignamos el array mapeado a la data de group
                 const groupDataNewObject = {
                     ...groupData,
                     members: membersList
@@ -1375,12 +1866,15 @@ const ChatsContent = () => {
 
             const AParticipantIsJoinedToChat = async (joinData: any) => {
 
+                const membersListObtained = await
+                    GetAllMembersOfGroup(groupData.group_id)
+
                 const chatParticipants = await GetAllChatParticipants(joinData.chat_id)
 
                 const allParticipantsObtained = chatParticipants.chat_participants
 
                 // aqui estamos mapeando y filtrando los datos para que se nos devuelva un nuevo array que tenga el estado y el socketid incluido en la data de cada miembro  
-                const membersList = groupData.members.map((member: any,) => {
+                const membersList = membersListObtained.map((member: any,) => {
                     const participantFound = allParticipantsObtained.filter((participant: any) => member.user.user_id === participant.user_id)
 
                     if (participantFound) {
@@ -1407,9 +1901,9 @@ const ChatsContent = () => {
             socket.on(A_PARTICIPANT_JOINED_THE_CHAT_EVENT, AParticipantIsJoinedToChat)
 
 
-            const AParticipantIsUnjoinedToChat = async (joinData: any) => {
+            const AParticipantIsUnjoinedToChat = async (unjoinData: any) => {
 
-                const chatParticipants = await GetAllChatParticipants(joinData.chat_id)
+                const chatParticipants = await GetAllChatParticipants(unjoinData.chat_id)
 
                 const allParticipantsObtained = chatParticipants.chat_participants
 
@@ -1444,6 +1938,11 @@ const ChatsContent = () => {
 
             const NotificationMessageRecived = async (notificationData: any) => {
                 console.log('se activo la funcion NotificationMessageRecived')
+
+                const notificationDataObtained = notificationData.currentNotificationData
+
+                NotificationToast(notificationDataObtained.message, notificationDataObtained.creator_userName, notificationDataObtained.creator_profile_picture)
+
                 const userNotificiationsList = notificationData.userNotificiationsList
 
                 console.log(groupChatsList)
@@ -1480,15 +1979,103 @@ const ChatsContent = () => {
                     console.log(groupListModificated)
 
 
-                    setGroupChatsList(groupListModificated)
+                    const groupListOrdered = groupListModificated.sort((a: any, b: any) => b.notifications_number - a.notifications_number)
 
+                    setGroupChatsList(groupListOrdered)
+
+                    return
                 }
+
+                // const chatNotificationExist = userNotificiationsList.find((notification: any) => notification.chat_id === userData.chat_id)
+
+                // if(userData.chat_id && chatNotificationExist && userNotificiationsList.length > 0){
+
+                //     const notificationOfChat = userNotificiationsList.filter((notification: any) => notification.chat_id === groupData.group.chat_id)
+                // }
 
             }
 
             socket.on(NOTIFICATION_MESSAGE_EVENT, NotificationMessageRecived)
 
 
+
+            const AParticipantChagedToRoleChat = (memberData: any) => {
+
+                const memberId = memberData.member_id
+
+                // aqui actualizamos el role del miembro que fue ascendido a admin
+                const memberListUpdated = groupData.members.map((member: any) => {
+
+                    if (member.user.user_id === memberId) {
+
+                        return { ...member, role: 'admin' }
+
+                    }
+
+                    return member
+                })
+
+
+                const newGroupData = {
+                    ...groupData,
+                    members: memberListUpdated
+                }
+
+                setGroupData(newGroupData)
+
+            }
+
+            socket.on(A_PARTICIPANT_CHANGED_TO_ROLE_EVENT, AParticipantChagedToRoleChat)
+
+
+
+            const AParticipantWasDeletedByAdminToChat = async (memberDeletedData: any) => {
+
+
+                const newMembersList = groupData.members.filter((member: any) => member.user.user_id !== memberDeletedData.member_id)
+
+                const groupDataNewObject = {
+                    ...groupData,
+                    members: newMembersList
+                }
+
+                console.log(groupDataNewObject.members)
+                setGroupData(groupDataNewObject)
+
+                if (userData.user_id === memberDeletedData.member_id) {
+                    const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
+
+
+                    const dataForMemberLeaveToRoom = { authToken: `Bearer ${accessToken}`, chatId: memberDeletedData.chat_id }
+
+                    socket.emit(A_ADMIN_HAS_DELETED_YOU_CHAT_EVENT, dataForMemberLeaveToRoom)
+
+                    BackToMenuHandler()
+                }
+
+            }
+
+            socket.on(A_PARTICIPANT_DELETED_BY_ADMIN_CHAT_EVENT, AParticipantWasDeletedByAdminToChat)
+
+
+            const AParticipantLeftTheGroupToChat = async (memberLeftData: any) => {
+
+                const memberIdLeft = memberLeftData.member_id_Left
+
+
+                const newMembersList = groupData.members.filter((member: any) => member.user.user_id !== memberIdLeft)
+
+                const groupDataNewObject = {
+                    ...groupData,
+                    members: newMembersList
+                }
+
+                console.log(groupDataNewObject.members)
+                setGroupData(groupDataNewObject)
+
+            }
+
+            socket.on(A_PARTICIPANT_LEFT_THE_GROUP_CHAT_EVENT, AParticipantLeftTheGroupToChat)
 
 
 
@@ -1509,6 +2096,12 @@ const ChatsContent = () => {
 
                 socket.off(A_PARTICIPANT_UNJOINED_TO_CHAT_EVENT, AParticipantIsUnjoinedToChat)
 
+                socket.off(A_PARTICIPANT_DELETED_BY_ADMIN_CHAT_EVENT, AParticipantWasDeletedByAdminToChat)
+
+                socket.off(A_PARTICIPANT_LEFT_THE_GROUP_CHAT_EVENT, AParticipantLeftTheGroupToChat)
+
+                socket.off(A_PARTICIPANT_CHANGED_TO_ROLE_EVENT, AParticipantChagedToRoleChat)
+
                 socket.off(NOTIFICATION_MESSAGE_EVENT, NotificationMessageRecived)
 
             }
@@ -1520,6 +2113,18 @@ const ChatsContent = () => {
         }
 
     }, [chatmessages, userData.chat_type])
+
+
+
+    // Enforce Limit
+    useEffect(() => {
+        const TOAST_LIMIT = 2
+
+        toasts
+            .filter(t => t.visible) // Only consider visible toasts
+            .filter((item, i) => i === TOAST_LIMIT) // Is toast index over limit
+            .forEach(t => toast.dismiss(t.id)) // Dismiss – Use toast.remove(t.id) removal without animation
+    }, [toasts])
 
     //#endregion
 
@@ -1539,7 +2144,7 @@ const ChatsContent = () => {
                         <div className="w-full flex flex-col justify-between items-start gap-7 pl-7 pr-5 overflow-hidden ">
                             <div className="w-full flex flex-row gap-1 p-2 bg-zinc-600 rounded-md">
                                 {iconsForChatsPage[1].icon}
-                                <input className="w-full text-xs bg-transparent outline-none" type="text" placeholder="Search" />
+                                <input className="w-full text-xs bg-transparent outline-none" type="text" placeholder="Search" value={groupsListQuery} onChange={FilterGroupsList} />
                             </div>
 
                             <div className="w-full h-32 flex flex-col justify-start items-start gap-2 overflow-scroll">
@@ -1549,7 +2154,7 @@ const ChatsContent = () => {
                                             <div id={group.group_id} onClick={CloseMenuOpenGroupChatHandler}>{group.group_icon}</div>
                                             <h2 id={group.group_id} className="w-auto h-6 whitespace-nowrap overflow-hidden " onClick={CloseMenuOpenGroupChatHandler}>{group.group_name}</h2>
                                             <p className={`${notifications_number > 0 ? '' : 'hidden'} w-6 h-6 flex flex-row justify-center  items-center ml-auto rounded-full bg-blue-500 text-sm`}>{notifications_number}</p>
-                                            
+
                                         </div>
                                     })
                                 }
@@ -1592,8 +2197,13 @@ const ChatsContent = () => {
 
 
                     <div className='w-full h-20 flex flex-row gap-4  items-center [grid-area:Navigation] self-end pl-7 pr-5' onClick={OpenNavigationMenuHandler} >
-                        <Image src={userInfo.profileImage} className='w-10 h-10 rounded-lg' alt='profileImage' />
-                        <p className=" md:flex md:flex-col md:justify-center">{userInfo.name}</p>
+                        {!userData.profile_picture ? (<>
+                            <div className="animate-pulse w-[40px] h-[40px] rounded-xl bg-zinc-200"></div>
+                        </>) : (<>
+                            <Image src={userData.profile_picture} className='rounded-lg' width="40" height="40" alt='profileImage' />
+                        </>)
+                        }
+                        <p className=" md:flex md:flex-col md:justify-center">{userData.username}</p>
                         <div className="hidden md:flex-1 md:flex md:flex-col md:justify-center-end md:items-end">{
 
                             navigationMenuOpen ? (iconsArrowForNavMenuChats[1].icon) : (iconsArrowForNavMenuChats[0].icon)
@@ -1649,7 +2259,7 @@ const ChatsContent = () => {
                             {
                                 groupData.members.map((member: any) => {
                                     return <div id={member.user.user_id} key={member.user.group_id} className="w-full h-12  flex flex-row items-center hover:pl-2 gap-3 " onClick={OpenCardOfChangeRoleOfMember}>
-                                        <Image src={userInfo.profileImage} width="35" height="35" className="rounded-md" alt='memberimageProfile' id={member.user.user_id} onClick={OpenCardOfChangeRoleOfMember} />
+                                        <Image src={member.user.profile_picture} width="35" height="35" className="rounded-md" alt='memberimageProfile' id={member.user.user_id} onClick={OpenCardOfChangeRoleOfMember} />
                                         <p id={member.user.user_id} className='w-8/12 whitespace-nowrap overflow-hidden ' onClick={OpenCardOfChangeRoleOfMember}>{member.user.name}</p>
                                         <div id={member.user.user_id} className={`${member.status === 'active' ? 'bg-green-400' : 'bg-gray-400'}  w-2 h-2 rounded-full`} onClick={OpenCardOfChangeRoleOfMember}></div>
                                         <div className={`${member.role === 'admin' ? '' : 'hidden'} flex flex-col justify-center items-center w-4 h-4`} >{iconsForChatsPage[7].icon}</div>
@@ -1663,7 +2273,7 @@ const ChatsContent = () => {
                         {
                             groupData.members.map((member: any) => {
                                 return member.role === 'admin' && member.user.user_id === userData.user_id ? (<div id={member.user.user_id} key={member.user.group_id} className='w-full h-14 self flex flex-row justify-between items-center bg-zinc-700 p-3 gap-5 rounded-xl' onClick={CopyInvitationId}>
-                                    <input ref={inputOfInvitationId} id={member.user.user_id} className='w-full flex flex-col justify-center items-start   whitespace-nowrap overflow-hidden selection:bg-transparent bg-zinc-700  text-white outline-none caret-transparent select ' onClick={CopyInvitationId} value={invitationId} />
+                                    <input ref={inputOfInvitationId} id={member.user.user_id} className='w-full flex flex-col justify-center items-start   whitespace-nowrap overflow-hidden selection:bg-transparent bg-zinc-700  text-white outline-none caret-transparent select ' onClick={CopyInvitationId} defaultValue={invitationId} />
 
                                     <div onClick={CopyInvitationId} className='flex flex-col justify-center items-center w-4 h-4'>{!isInvitationIdCopied ? iconsForChatsPage[8].icon : iconsForChatsPage[9].icon}</div>
                                 </div>) : (<></>)
@@ -1675,8 +2285,13 @@ const ChatsContent = () => {
 
 
                     <div className='w-full h-20 flex flex-row gap-4  items-center [grid-area:Navigation] self-end pl-7 pr-5' onClick={OpenNavigationMenuHandler} >
-                        <Image src={userInfo.profileImage} className='w-10 h-10 rounded-lg' alt='profileImage' />
-                        <p className=" md:flex md:flex-col md:justify-center">{userInfo.name}</p>
+                        {!userData.profile_picture ? (<>
+                            <div className="animate-pulse w-[40px] h-[40px] rounded-xl bg-zinc-700"></div>
+                        </>) : (<>
+                            <Image src={userData.profile_picture} className='rounded-lg' width="40" height="40" alt='profileImage' />
+                        </>)
+                        }
+                        <p className=" md:flex md:flex-col md:justify-center">{userData.username}</p>
                         <div className="hidden md:flex-1 md:flex md:flex-col md:justify-center-end md:items-end">{
 
                             menuOpen ? (iconsArrowForNavMenuChats[1].icon) : (iconsArrowForNavMenuChats[0].icon)
@@ -1718,19 +2333,38 @@ const ChatsContent = () => {
                     </div>
                     {
                         chatmessages.map((message: any) => {
-                            return message.message_type === 'text' ?
-                                (<>
-                                    <Message key={message.message_id} message={message} />
-                                </>)
-                                : message.message_type === 'unreadMessage' ?
-                                    (<>
+                            return (<>
+                                {message.message_type === 'unreadMessage' && (
+                                    <>
                                         <p id={message.notification_id} key={message.notification_id} ref={unreadMessagesArea} className="mx-auto text-xs p-3 bg-zinc-900 rounded-xl">{`${numberOfUnreadMessages} unread messages`}</p>
+                                    </>)
+                                }
+                                {message.message_type === 'text' && (
+                                    <>
+                                        <Message key={message.message_id} message={message} />
 
-                                    </>) : message.message_type === 'unionDate' ? (<>
+                                    </>)
+
+                                }
+                                {message.message_type === 'unionDate' && (
+                                    <>
                                         <div id={message.message_id} key={message.message_id} className="w-full flex flex-col justify-center items-center mx-auto bg-zinc-800 ">
                                             <p className="mx-auto text-xs p-4 bg-zinc-900 rounded-xl">{`user ${message.username} joined the group`}</p>
                                         </div>
-                                    </>) : (<></>)
+                                    </>)
+                                }
+                                {message.message_type === 'emitionDate' && (
+                                    <>
+                                        <div id={message.emition_id} key={message.emition_id} className="w-full flex flex-col justify-center items-center mx-auto bg-zinc-800 ">
+                                            <p className="mx-auto text-sm p-4 bg-zinc-900 rounded-xl">{message.emition_date}</p>
+                                        </div>
+                                    </>)
+                                }
+                            </>
+                            )
+
+
+
 
                             // <div key={message.user_id} className="w-full flex flex-row px-4 gap-4">
                             //     <div className="w-10 h-full">
@@ -1763,7 +2397,7 @@ const ChatsContent = () => {
                                 (<></>)
                             }
                         </div>
-                        <form onSubmit={messageSubmitHandle} className="relative h-16 w-[95%] flex flex-row justify-between items-center pr-2 bg-zinc-600 rounded-md ">
+                        <form onSubmit={messageSubmitHandle} className={`${userData.chat_id ? "" : "hidden"} relative h-16 w-[95%] flex flex-row justify-between items-center pr-2 bg-zinc-600 rounded-md`}>
                             <input className="outline-none flex-1 bg-transparent text-xs p-3" type="text" placeholder="Type a message here" value={message} onChange={changeValueOfMessage} />
                             <button className="w-9 h-10 flex flex-col justify-center items-center bg-blue-500 rounded-lg">
                                 {iconsForChatsPage[2].icon}
@@ -1800,7 +2434,7 @@ const ChatsContent = () => {
                     <form onSubmit={HandlerCreateNewChannel} ref={formToCreateChannel} className="w-[90%] flex flex-col justify-start  items-center gap-6 md:w-[80%] ">
                         <input className="outline-none w-full p-3 text-sm rounded-lg bg-zinc-700" type="text" placeholder="Channel name" id="channelName" name="channelName" />
                         <input className="outline-none w-full p-3 text-sm rounded-lg bg-zinc-700" type="text" placeholder="Password Channel" id="channelPassword" name="channelPassword" />
-                        <textarea className="outline-none w-full h-28 resize-none p-3 text-sm rounded-lg bg-zinc-700" name="channelDescription" id="channelDescription" placeholder="Channel Description"></textarea>
+                        <textarea className="outline-none w-full h-28 resize-none p-3 text-sm rounded-lg bg-zinc-700" name="channelDescription" id="channelDescription" placeholder="Channel Description"  ></textarea>
                         <input className="outline-none w-[60%] py-3 bg-blue-500 shadow-md shadow-blue-500 rounded-lg md:w-32  md:self-end" type="button"
                             value="Save" onClick={HandlerCreateNewChannel} />
                     </form>
@@ -1808,10 +2442,20 @@ const ChatsContent = () => {
                 </div>
 
 
+
                 <div className={`${wasNewIvitationIdCreated ? "" : "hidden"} relative w-[90%] h-52 flex flex-col justify-center items-center gap-6  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
                     <h3>Invitation id</h3>
-                    <input readOnly={true} className="outline-none w-[80%] p-3 text-sm rounded-lg bg-zinc-700" type="text" value={invitationId} id="invitationId" name="invitationId" />
+
+                    <div className='w-[80%] h-14 self flex flex-row justify-between items-center bg-zinc-700 p-3 gap-5 rounded-xl' onClick={CopyInvitationId}>
+                        <input ref={inputOfInvitationId}
+                            id="invitationIdInput" type="text" className='w-full flex flex-col justify-center items-start   whitespace-nowrap overflow-hidden selection:bg-transparent bg-zinc-700  text-white outline-none caret-transparent select ' onClick={CopyInvitationId} defaultValue={invitationId} />
+
+                        <div onClick={CopyInvitationId} className='flex flex-col justify-center items-center w-4 h-4'>{!isInvitationIdCopied ? iconsForChatsPage[8].icon : iconsForChatsPage[9].icon}</div>
+                    </div>
+
                     <div className="absolute w-7 h-8 flex flex-col justify-center items-center top-[9px] right-[5px] text-white z-20 " onClick={CloseCardOfInvitationIdCreated} >{iconsForChatsPage[4].icon}</div>
+
+
                 </div>
 
                 <div className={`${isOpenJoinCardToChat ? "" : "hidden"} relative w-[90%] h-72 flex flex-col justify-center items-center gap-8  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
@@ -1819,30 +2463,40 @@ const ChatsContent = () => {
                     <form onSubmit={HandlerJoinToChannel} ref={formToJoinChannel} className="w-[90%] flex flex-col justify-start  items-center gap-6 md:w-[80%]">
                         <input className="outline-none w-full p-3 text-sm rounded-lg bg-zinc-700" type="text" placeholder="Insert Invitation Id" id="invitationId" name="invitationId" value={invitationId} onChange={(e) => setInvitationId(e.target.value)} />
                         <input className="outline-none w-full p-3 text-sm rounded-lg bg-zinc-700" type="text" placeholder="Insert Password" id="channelPassword" name="channelPassword" />
-                        <input className="outline-none w-[50%] py-2 bg-blue-500 shadow-md shadow-blue-500 rounded-lg md:w-32" type="button" value="Join" onClick={HandlerJoinToChannel} />
+                        <input className="outline-none w-[50%] py-2 bg-blue-500 shadow-md shadow-blue-500 rounded-lg md:w-32" type="button" value="Join" readOnly onClick={HandlerJoinToChannel} />
                     </form>
                     <div className="absolute w-7 h-8 flex flex-col justify-center items-center top-[9px] right-[5px] text-white z-20 " onClick={CloseCardOfJoinToChannel} >{iconsForChatsPage[4].icon}</div>
                 </div>
 
-                <div className={`${isOpenAddContactCard ? "" : "hidden"} relative w-[90%] h-96  flex flex-col justify-center items-center gap-8  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
+                <div className={`${isOpenAddContactCard ? "" : "hidden"} relative w-[90%] h-96  flex flex-col pt-16 items-center mb-20 gap-8  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
                     <h3>Add New Contact</h3>
                     <form onSubmit={RegisterNewContact} ref={formToCreateNewContact} className="relative w-[90%] flex flex-col justify-start  items-center gap-6 md:w-[80%]">
                         <div className="w-full h-11 flex flex-row items-center gap-1 p-2 bg-zinc-600 rounded-md">
                             {iconsForChatsPage[1].icon}
-                            <input className="w-full h- text-xs bg-transparent outline-none" type="text" value={searchNewContactValue} placeholder="Search" onChange={HandlerSearchNewContacts} />
+                            <input className="w-full text-xs bg-transparent outline-none" type="text" value={searchNewContactValue} placeholder="Search" onChange={HandlerSearchNewContacts} />
                         </div>
 
                         {searchNewContactValue ? (<>
-                            <div className="absolute top-12 w-full h-max-64 flex flex-col justify-start items-center gap-3 p-3 overflow-scroll bg-zinc-950 rounded-md">
-                                {
-                                    listOfNewContactSearched.map((contactFound): any => {
-                                        return <div id={contactFound.user_id} key={contactFound.user_id} className="w-full h-15 flex flex-row justify-start items-center gap-3 p-2 bg-zinc-600 rounded-md" onClick={SelectUserForToBeNewContact}>
-                                            <Image src={userInfo.profileImage} id={contactFound.user_id} alt="ContactProfile" width="45" height="45" className="rounded-md" onClick={SelectUserForToBeNewContact} />
-                                            <p id={contactFound.user_id} onClick={SelectUserForToBeNewContact}>{contactFound.username}</p>
-                                        </div>
-                                    })
-                                }
+                            <div className="absolute top-12 w-full h-max-64 flex flex-col justify-start items-center gap-3 p-3 bg-zinc-950 rounded-md">
+                                <div className="w-full h-full flex flex-col justify-start items-center gap-3 p-3 overflow-scroll">
+                                    {
+                                        listOfNewContactSearched.map((contactFound): any => {
+                                            return <div id={contactFound.user_id} key={contactFound.user_id} className="w-full h-15 flex flex-row justify-start items-center gap-3 p-2 bg-zinc-600 rounded-md" onClick={SelectUserForToBeNewContact}>
+                                                <Image src={contactFound.profile_picture} id={contactFound.user_id} alt="ContactProfile" width="45" height="45" className="rounded-md" onClick={SelectUserForToBeNewContact} />
+                                                <p id={contactFound.user_id} onClick={SelectUserForToBeNewContact}>{contactFound.username}</p>
+                                            </div>
+                                        })
+                                    }
+
+                                </div>
+
+                                <div className="px-4 py-2 flex flex-row bg-zinc-700 gap-2 rounded-md" >
+                                    <div onClick={SearchContactsOnPreviousPage} className="bg-blue-600 rounded-md px-3 py-1" >{"<"}</div>
+                                    <span className="w-5 text-center bg-transparent">{offsetToSearchNewContacts}</span>
+                                    <div onClick={SearchContactsOnNextPage} className="bg-blue-600 rounded-md px-3 py-1">{">"}</div>
+                                </div>
                             </div>
+
                         </>
                         )
                             :
@@ -1856,8 +2510,11 @@ const ChatsContent = () => {
                                 <h4>User Selected</h4>
                                 <div className=" w-full h-15 flex flex-row justify-start items-center gap-3 p-2 bg-zinc-600 rounded-md">
                                     {/* <Image src={userDataSelected.profile_picture} alt="ContactProfile" width="45" height="45" className="rounded-md" /> */}
-                                    <Image src={userInfo.profileImage} alt="ContactProfile" width="45" height="45" className="rounded-md" />
+                                    <Image src={userDataSelected.profile_picture} alt="ContactProfile" width="45" height="45" className="rounded-md" />
                                     <p>{userDataSelected.username}</p>
+                                    <div className="w-7 h-7 flex felx-col justify-center items-center ml-auto rounded-full bg-zinc-700 hover:bg-red-500" onClick={DeleteContactSelected}>
+                                        {iconsForChatsPage[4].icon}
+                                    </div>
                                 </div>
 
                             </>
@@ -1878,7 +2535,7 @@ const ChatsContent = () => {
 
 
 
-                        <input className="outline-none w-[50%] py-2 bg-blue-500 shadow-md shadow-blue-500 rounded-lg md:w-32" type="button" value="Add Contact" />
+                        <input className="outline-none w-[50%] py-2 bg-blue-500 shadow-md shadow-blue-500 rounded-lg md:w-32" type="button" value="Add Contact" readOnly onClick={() => { }} />
                     </form>
                     <div className="absolute w-7 h-8 flex flex-col justify-center items-center top-[9px] right-[5px] text-white z-20 " onClick={CloseCardOfAddContact} >{iconsForChatsPage[4].icon}</div>
                 </div>
@@ -1896,9 +2553,9 @@ const ChatsContent = () => {
             </div>
 
             {/* <div className={`${isOpenCardToSelectOptions ? "" : "hidden"} w-full h-screen fixed flex flex-col justify-center items-center  bg-fixed-for-add-channels z-40`}> */}
-            <div className={`${isOpenCardToChangeRoleOfMember ? "" : "hidden"} w-full h-screen fixed flex flex-col justify-center items-center  bg-fixed-for-add-channels z-40`}>
+            <div className={`${isOpenCardToChangeRoleOfMember && isUserAdminToGroup ? "" : "hidden"} w-full h-screen fixed flex flex-col justify-center items-center  bg-fixed-for-add-channels z-40`}>
 
-                <div className={`${isOpenCardToChangeRoleOfMember ? "" : "hidden"} relative w-[90%] h-52 flex flex-col justify-center items-center gap-6  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
+                <div className={`${isOpenCardToChangeRoleOfMember && isUserAdminToGroup ? "" : "hidden"} relative w-[90%] h-52 flex flex-col justify-center items-center gap-6  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
 
                     <button onClick={DeleteMemberOfChat} className="w-[65%] py-3 bg-red-500 rounded-lg">Delete Member</button>
 
@@ -1908,6 +2565,7 @@ const ChatsContent = () => {
                 </div>
 
             </div>
+
 
         </div >
     )

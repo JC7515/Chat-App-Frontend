@@ -23,7 +23,8 @@ export interface cookiesZerializerProps {
 
 export interface propsToProfile {
     ProfileEditOnHandler: () => void,
-    userData: bodyUserData
+    userData: bodyUserData,
+    WasSendEditFormFunc: () => void
 }
 
 export interface propsToMessageComponent {
@@ -62,6 +63,7 @@ export type listButtomsValues = typeof LIST_BUTOMS[keyof typeof LIST_BUTOMS]
 export interface bodyMessageToBacked {
     message_id: string,
     chat_id?: string,
+    group_id?: string,
     user_id: string,
     message_content: string,
     timestamp?: string,
@@ -69,6 +71,7 @@ export interface bodyMessageToBacked {
     read_timestamp?: string,
     message_type: string,
     username?: string
+    profile_picture?: string,
 } 
 
 export type bodyMessage = {

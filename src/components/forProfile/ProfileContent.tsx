@@ -19,7 +19,7 @@ const ProfileContent = () => {
         biography: '...',
         phone: '...',
         email: '...',
-        profile_picture: '...',
+        profile_picture: '',
         create_at: new Date(),
         chat_id: '..',
         chat_type: '..'
@@ -27,19 +27,10 @@ const ProfileContent = () => {
 
     const router = useRouter()
 
-    const [userData, setUserData] = useState({
-        user_id: '...',
-        username: '...',
-        name: '...',
-        biography: '...',
-        phone: '...',
-        email: '...',
-        profile_picture: '...',
-        create_at: new Date(),
-        chat_id: '..',
-        chat_type: '..'
-    })
+    const [userData, setUserData] = useState<bodyUserData>(userDataBody)
     const [profileEditOn, setProfileEditOn] = useState(false)
+
+    const [wasSendEditForm, setWasSendEditForm] = useState(false)
 
 
     const ProfileEditOnHandler = (): void => {
@@ -50,12 +41,18 @@ const ProfileContent = () => {
         }
     }
 
+    const WasSendEditForm = () => {
+        setWasSendEditForm(true)
+    }
+
 
     useEffect(() => {
         try {
             const UserDataFunc = async () => {
                 const resp: any = await GetUserData(router)
                 setUserData(resp)
+
+                console.log(resp)
             }
 
             UserDataFunc()
@@ -64,7 +61,7 @@ const ProfileContent = () => {
            console.log(err)
            router.push('/')
         }
-    }, [])
+    }, [wasSendEditForm])
 
 
 
@@ -73,11 +70,11 @@ const ProfileContent = () => {
             {!profileEditOn ?
                 (
                     <>
-                        <ProfileInfoCard ProfileEditOnHandler={ProfileEditOnHandler} userData={userData} />
+                        <ProfileInfoCard ProfileEditOnHandler={ProfileEditOnHandler} userData={userData} WasSendEditFormFunc={WasSendEditForm} />
                     </>
                 ) : (
                     <>
-                        <ProfileEditCard ProfileEditOnHandler={ProfileEditOnHandler} userData={userData} />
+                        <ProfileEditCard ProfileEditOnHandler={ProfileEditOnHandler} userData={userData} WasSendEditFormFunc={WasSendEditForm} />
                     </>
                 )
             }
