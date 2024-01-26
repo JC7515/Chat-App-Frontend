@@ -10,39 +10,100 @@
 }
 
 
-body::-webkit-scrollbar{
+body::-webkit-scrollbar {
   width: 0.2rem;
 }
 
-body::-webkit-scrollbar-thumb{
+body::-webkit-scrollbar-thumb {
   background: black;
   border-radius: 50px;
 }
 
-body::-webkit-scrollbar-thumb:hover{
+body::-webkit-scrollbar-thumb:hover {
   background: black;
   border-radius: 50px;
 }
 
-/* 
-section[id] {
-  scroll-margin-top: 130px;
-} */
+/* .scroll-bar::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+*/
 
 @layer components {
-  
-  .menu-chat-area{
-    grid-template-areas: 
-     "channels"
-     "contacts"
-     "Navigation"
+
+
+
+  .scroll-bar::-webkit-scrollbar {
+    width: 0.3rem;
+  }
+
+  .scroll-bar::-webkit-scrollbar-thumb {
+    background-color: rgb(74, 74, 74);
+    border-radius: 10px;
+  }
+
+  .scroll-bar::-webkit-scrollbar-thumb:hover {
+    background-color: black;
+    border-radius: 10px;
+  }
+
+
+  .menu-chat-area {
+    grid-template-areas:
+      "channels"
+      "contacts"
+      "Navigation"
     ;
   }
 
   .bg-fixed-for-add-channels {
-     background-color: rgba(0, 0, 0, 0.50);
+    background-color: rgba(0, 0, 0, 0.50);
   }
+
+  .triangle-pointed-to-the-left {
+    clip-path: polygon(100% 0, 0 0, 100% 100%);
+  }
+
+  .triangle-pointed-to-the-right {
+    clip-path: polygon(100% 0, 0 0, 0 100%);
+  }
+
+  .rounded-for-messages-to-the-left {
+    border-radius: 0px 8px 8px 8px;
+    -webkit-border-radius: 0px 8px 8px 8px;
+    -moz-border-radius: 0px 8px 8px 8px;
+  }
+
+  .rounded-for-messages-to-the-right {
+    border-radius: 8px 0px 8px 8px;
+    -webkit-border-radius: 8px 0px 8px 8px;
+    -moz-border-radius: 8px 0px 8px 8px;
+  }
+
+  .default-background-for-chat {
+    background-repeat: repeat;
+    background-size: contain;
+    background-image: url('../../public/default-Background-For-Chat-3.jpg')
+  }
+
+  .default-background-for-message-area {
+    background-repeat: repeat;
+    background-size: contain;
+    background-image: url('../../public/default-Background-For-Chat-2.jpg')
+  }
+
+  .max-w-for-message {
+    max-width: 250px;
+  }
+
+  .shimmer {
+    background: #e2e3e4;
+    background-image: linear-gradient(to right, #e2e3e4 0%, #f6f7f8 20%, #e2e3e4 40%, #e2e3e4 100%);
+    background-repeat: no-repeat
+  }
+
+  .min-h-70px {
+    min-height: 70px;
+  }
+
 }
-
-
-

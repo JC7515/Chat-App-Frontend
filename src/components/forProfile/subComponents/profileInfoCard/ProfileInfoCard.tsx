@@ -3,7 +3,6 @@ import { LIST_BUTOMS, propsToProfile } from "@/components/types"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { GetUserData } from "./ProfileInfoCard.data"
 
 // Este codigo es de ejemplo y no tiene que se tomado en cuenta dentro de la logica de este componente, lo que estamos haciendo con este codigo typeof LIST_BUTOMS[keyof typeof LIST_BUTOMS], es poder extraer los valores de todas las propiedades del objeto LIST_BUTOMS de forma utomatica, evitando ponerlo de esta forma "Profile" | "Chat" | "Task", que hace que cuando queramos agregar mas propiedades al objeto en cuestion tengamos que tambien agregale a mano otro valor mas a este grupo de types "Profile" | "Chat" | "Task", este truco nos lo enseño el profe midu y es para objetener ese valores de la propiedades del objeto de forma automatica, y si agregamos mas propiedades al objeto, este codigo typeof LIST_BUTOMS[keyof typeof LIST_BUTOMS] actualizara y agregara automaticamente todas la propiedades recien agregadas.
 interface exampleOfButtonsOFTypesFile {

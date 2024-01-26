@@ -2,12 +2,13 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { GetUserData } from '../forProfile/subComponents/profileInfoCard/ProfileInfoCard.data'
 import { useRouter } from "next/navigation"
 import { userInfo } from '../infoUser/InfoUser'
 import { logoForLogin } from '../logo/Logo.data'
 import { iconsArrowForNav, infoForMenuProfile } from './NavBar.data'
 import { bodyUserData } from '../types'
+import lockImage from '../../../public/lockImage.png'
+import { GetUserData } from '@/helpers'
 
 const Navbar = () => {
 
@@ -18,7 +19,7 @@ const Navbar = () => {
         biography: '...',
         phone: '...',
         email: '...',
-        profile_picture: '',
+        profile_picture: undefined,
         create_at: new Date(),
         chat_id: '..',
         chat_type: '..'
@@ -63,11 +64,13 @@ const Navbar = () => {
                 <h2 className='flex flex-col justify-center'>DevPros</h2>
             </div>
             <div className='flex flex-row gap-3' onClick={openMenuHandler} >
-                {!userData.profile_picture ? (<>
-                    <div className="animate-pulse w-52 h-10 rounded-xl bg-zinc-200"></div>
-                </>) : (<>
-                    <Image src={userData.profile_picture} className='rounded-lg' width="40" height="40" alt='profileImage' />
+                {userData.profile_picture && (<>
+                    <Image src={!userData.profile_picture ? lockImage : userData.profile_picture} className='rounded-lg' width="40" height="40" alt='profileImage' />
                     <p className=" hidden md:flex md:flex-col md:justify-center">{userData.username}</p>
+                </>)
+                }
+                {!userData.profile_picture && (<>
+                    <div className="animate-pulse w-52 h-10 rounded-xl bg-zinc-200"></div>
                 </>)
                 }
                 <div className=" hidden md:flex md:flex-col md:justify-center md:items-center">{

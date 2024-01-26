@@ -1,6 +1,8 @@
 import { RiFacebookBoxFill,  RiGoogleLine, RiTwitterFill, RiGithubFill, RiLockPasswordFill } from "react-icons/ri";
 import { MdEmail } from "react-icons/md";
 import { bodyCookieOptions } from "@/components/types";
+import { VscEye } from "react-icons/vsc";
+import { VscEyeClosed } from "react-icons/vsc";
 
 
 const cookieExpirationDate = new Date()
@@ -51,7 +53,7 @@ const settingsOfIconsWithFrom = {
     color: "#828282"
 }
 
-export const iconsWithFrom = [
+export const iconsForLogin = [
     {
         id: "0",
         icon: <MdEmail size={settingsOfIconsWithFrom.size} color={settingsOfIconsWithFrom.color} />
@@ -59,5 +61,13 @@ export const iconsWithFrom = [
     {
         id: "1",
         icon: <RiLockPasswordFill size={settingsOfIconsWithFrom.size} color={settingsOfIconsWithFrom.color} />
-    }
+    },
+    {
+        id: "2",
+        icon: <VscEye  size={settingsOfIconsWithFrom.size} color={settingsOfIconsWithFrom.color} />
+    },   
+    {
+        id: "3",
+        icon: <VscEyeClosed  size={settingsOfIconsWithFrom.size} color={settingsOfIconsWithFrom.color} />
+    }   
 ]

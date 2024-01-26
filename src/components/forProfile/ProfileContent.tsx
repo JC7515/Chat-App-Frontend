@@ -1,11 +1,11 @@
 'use client'
+import { GetUserData } from "@/helpers"
 import { GetUserDataValidated } from "@/utils"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { bodyUserData } from "../types"
 import ProfileEditCard from "./subComponents/profileEditCard/ProfileEditCard"
 import ProfileInfoCard from "./subComponents/profileInfoCard/ProfileInfoCard"
-import { GetUserData } from "./subComponents/profileInfoCard/ProfileInfoCard.data"
 
 
 const ProfileContent = () => {

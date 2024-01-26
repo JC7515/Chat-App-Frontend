@@ -1,5 +1,9 @@
 import { bodyCookieOptions, cookiesZerializerForEachProps, cookiesZerializerProps } from '@/components/types'
 import cookie from 'cookie'
+import { GetUserDataValidated } from "@/utils"
+import { NextComponentType } from "next"
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
+
 
 export const GetCookieValue = (cookieKey: string) => {
 
@@ -118,4 +122,72 @@ export const TransformDateToEmitionDate = (dateToTransform: any) => {
     const dateString = `${day} / ${month} / ${year}`;
 
     return dateString
+}
+
+
+export const GetUserData = async (nextRouter: any) => {
+
+    try {
+        return await GetUserDataValidated()
+        //   dispatch(updateUserAuth(true))
+        //   dispatch(setUserData(useData))
+
+    } catch (err) {
+        console.log(err)
+        nextRouter.push('/')
+    }
+}  
+
+
+
+export const LimitYear = async (event: any) => {
+
+    const inputValue = event.target.value;
+    const keyCode = event.keyCode;
+    const currentDate = new Date()
+    const currentYear = currentDate.getFullYear()
+
+    // Aqui Permitimos las teclas de control como Enter, Flecha Izquierda, Flecha Derecha
+    if (event.ctrlKey || keyCode === 13 || keyCode === 37 || keyCode === 39) {
+        return;
+    }
+
+    // Aqui Permitimos solo números y el carácter "-"
+    if (!/^\d+$/.test(event.key) && event.key !== '-') {
+        event.preventDefault();
+        
+    }
+
+    // Aqui adquirimos el año del event.target.value 
+    const year = inputValue.substring(0, 4);
+
+
+    // Aqui Limitamos el año a 2024
+    if( year > currentYear && year.length === 4 ) {
+        event.preventDefault();
+    
+        const currentMonth = inputValue.substring(5, 7);
+        const currentDay = inputValue.substring(8, 10);
+
+        console.log(currentMonth)
+        console.log(currentDay)
+
+        const currentDate =  `${currentYear}-${currentMonth}-${currentDay}`
+
+        console.log(currentDate)
+        event.target.value = currentDate
+        console.log(event.target.value)
+
+    }
+}
+
+
+export const ShowPassword = (newState: any, currentState: any) => {
+    if(currentState === 'password'){
+        newState('text') 
+        return
+    }{
+        newState('password') 
+        return
+    }
 }

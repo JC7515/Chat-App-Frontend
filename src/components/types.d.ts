@@ -38,7 +38,7 @@ export type bodyUserData = {
     biography: string,
     phone: string,
     email: string,
-    profile_picture: string,
+    profile_picture: string | undefined,
     create_at: Date,
     chat_id?: string,
     chat_type?: string,
@@ -72,6 +72,9 @@ export interface bodyMessageToBacked {
     message_type: string,
     username?: string
     profile_picture?: string,
+    chat_type?: string,
+    is_read?: boolean,
+    is_current_user_messsage?: boolean,
 } 
 
 export type bodyMessage = {
@@ -85,3 +88,25 @@ export type bodyMessage = {
     is_read: boolean,
     message_type: string,
 } 
+
+
+export type contactData = {
+    user_id: string | undefined,
+    socket_id: string | undefined,
+    username: string | undefined,
+    profile_picture: string | undefined,   
+    contact_icon: string | undefined, 
+    status?: string | undefined,  
+    contact_blocked_you?: boolean | undefined
+}
+
+export type contactBodyInList = {
+    contact_id: string | undefined,
+    user_id: string | undefined,
+    contact_user: contactData,
+    chat_id: string | undefined,
+    is_blocked: boolean | undefined,
+    is_contact_validated: boolean | undefined,
+    creation_date: Date | string | undefined,
+    notifications_number?: number | undefined
+}

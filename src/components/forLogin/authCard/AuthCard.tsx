@@ -1,11 +1,12 @@
 "use client"
 import Link from 'next/link'
 import cookie from 'cookie'
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { logoForLogin } from '@/components/logo/Logo.data'
-import { ACCESS_TOKEN_NAME,  COOKIE_EXPIRES, COOKIE_HTTPONLY, COOKIE_OPTIONS, COOKIE_PATH, COOKIE_SECURE, iconsAuth0, iconsWithFrom, REFRESH_TOKEN_NAME } from './AuthCard.data'
+import { ACCESS_TOKEN_NAME, COOKIE_EXPIRES, COOKIE_HTTPONLY, COOKIE_OPTIONS, COOKIE_PATH, COOKIE_SECURE, iconsAuth0, iconsForLogin, REFRESH_TOKEN_NAME } from './AuthCard.data'
 import { useRouter } from 'next/navigation'
-import { CookieSerializer } from '@/helpers'
+import { CookieSerializer, ShowPassword } from '@/helpers'
+import { iconsEmailVerificationPage } from '@/components/emailVerificationPage/EmailVerification.data'
 
 
 const AuthCard = () => {
@@ -14,14 +15,18 @@ const AuthCard = () => {
   const router = useRouter()
   const form: any = useRef()
 
-  const [failMessage, setFailMessage] = useState('')
+  const [failMessage, setFailMessage] = useState<any>('')
+  const [loginIsLoading, setloginIsLoading] = useState(false)
+  const [inputPasswordStatus, setInputPasswordStatus] = useState('password')
+
 
 
 
   const LoginHandler = async (e: any) => {
     e.preventDefault()
 
-    setFailMessage('wait')
+    setloginIsLoading(true)
+
 
     const formData = new FormData(form.current)
     const payload = {
@@ -48,8 +53,12 @@ const AuthCard = () => {
     console.log('no paso del objeto data')
 
     if (data.status === "FAILED") {
-      console.log('Registration failed try again.')
-      setFailMessage(data.data.error.message)
+      setTimeout(() => {
+        console.log('Registration failed try again.')
+        setFailMessage(data.data.error)
+        console.log(failMessage)
+        setloginIsLoading(false)
+      }, 1100)
     }
 
     console.log('entrando a la validacion de token')
@@ -66,24 +75,33 @@ const AuthCard = () => {
       const refreshTokenValue: string = data.data.refresh_token
 
       // Declaramos la opciones de nuestra cookie
-      
+
       // Lista de cokkies a serializar
       const listOfcookies = [
         { name: ACCESS_TOKEN_NAME, value: accessTokenValue },
         { name: REFRESH_TOKEN_NAME, value: refreshTokenValue }
       ]
-      
+
       // Bucle que serializa y registra las cookies en el objeto cookie del navegador
       CookieSerializer(listOfcookies, COOKIE_OPTIONS)
       // listOfcookies.forEach((cookieElem) => {
       //     document.cookie = cookie.serialize(cookieElem.name, cookieElem.value, cookieOptions)
       //  })
 
+      setFailMessage('')
+
       router.push('/profile')
 
     }
 
   }
+
+  useEffect(() => {
+    setTimeout(() => {
+      setFailMessage('')
+    }, 15000)
+
+  }, [failMessage])
 
 
   return (
@@ -95,14 +113,15 @@ const AuthCard = () => {
 
       <form onSubmit={LoginHandler} ref={form} className="w-full flex flex-col gap-4">
         <div className="flex gap-2 border-zinc-300 border-2 rounded-md px-3 py-3" >
-          {iconsWithFrom[0].icon}
+          {iconsForLogin[0].icon}
           <input className='outline-none' type="email" name="email" id="email" placeholder="Email" />
         </div>
         <div className="flex gap-2 border-zinc-300 border-2 rounded-md px-3 py-3">
-          {iconsWithFrom[1].icon}
-          <input className='outline-none' type="password" name="password" id="password" placeholder="Password" />
+          {iconsForLogin[1].icon}
+          <input className='outline-none' type={inputPasswordStatus} name="password" id="password" placeholder="Password" />
+          <div onClick={() => ShowPassword(setInputPasswordStatus, inputPasswordStatus)}>{inputPasswordStatus === 'password' ? iconsForLogin[2].icon : iconsForLogin[3].icon}</div>
         </div>
-        <button className="w-full h-9 bg-blue-500 rounded-md text-white">Start coding now</button>
+        <button className="w-full  flex flex-row justify-center items-center gap-2 py-3 bg-blue-500 rounded-md text-white">{!loginIsLoading ? (<>Start coding now</>) : (<>{iconsEmailVerificationPage[3].icon} loading</>)}</button>
       </form>
 
       <div className="w-full flex flex-col gap-7 items-center">
@@ -113,7 +132,7 @@ const AuthCard = () => {
           })}
         </ul>
         <p>Adready a member?<Link className='ml-1 text-sky-500' href="/signUp">singUp</Link></p>
-        <p>{failMessage}</p>
+        <p className={`${ failMessage ? '' : 'hidden' } bg-red-400 p-3 rounded-lg text-white`}>{failMessage}</p>
       </div>
 
     </div>
