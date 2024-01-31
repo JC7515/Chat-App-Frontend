@@ -1,9 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
+import contactsListSlice from "./features/contactsListSlice";
+import groupChatsListSlice from "./features/groupChatsListSlice";
 import userDataSlice  from "./features/userDataSlice";
 
 export const store = configureStore({
     reducer: {
-        userDataSlice
+        userDataSlice,
+        contactsListSlice,
+        groupChatsListSlice
     }
 }) 
 

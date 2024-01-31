@@ -224,6 +224,8 @@ export const GetUserDataValidated = async () => {
             email: user.email,
             profile_picture: user.profile_picture,
             create_at: user.create_at,
+            chat_id: '',
+            chat_type: '',
         }
 
         return userdata
@@ -271,7 +273,7 @@ export const ResendVerifyEmail = async (emailToResendValidation: any) => {
 
         const payload = {
             email: emailToResendValidation
-        } 
+        }
 
         const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/resendVerifyEmail`
 

@@ -1,12 +1,16 @@
-import { bodyMessage, propsToMessageComponent } from "@/components/types"
+import { bodyMessage, bodyMessageToBacked, bodyMessageToShowInView, propsToMessageComponent } from "@/components/types"
 import Image from "next/image"
 import myImage from '../../../../../public/myImage.jpg'
 import { iconsForMessages } from "../../ChatsContent.data"
 
-const Message = ({ message }: any) => {
+interface Props {
+    message: bodyMessageToShowInView
+}
+
+const Message: React.FC<Props> = ({ message }) => {
     return (
         <>
-            <div className={`flex flex-row ${message.  is_current_user_messsage ? 'self-end' : 'self-start'}`}>
+            <div className={`flex flex-row ${message.is_current_user_messsage ? 'self-end' : 'self-start'}`}>
 
                 <div className={` ${!message.is_current_user_messsage ? '' : 'hidden'} w-2 h-2  bg-zinc-800 triangle-pointed-to-the-left`}></div>    
            

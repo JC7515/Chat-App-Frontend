@@ -22,6 +22,7 @@ import { HiChatAlt2 } from "react-icons/hi";
 import myImage from '../../../public/myImage.jpg'
 import { Toaster, toast } from 'react-hot-toast';
 import { Content } from "next/font/google";
+import { infoForNavMenuChatBody } from "../types";
 
 
 
@@ -409,7 +410,7 @@ export const iconsArrowForNavMenuChats = [
 
 ]
 
-export const infoForNavMenuChat = [
+export const infoForNavMenuChat: infoForNavMenuChatBody[] = [
     {
         id: "0",
         name: 'My profile',
@@ -429,6 +430,7 @@ export const infoForNavMenuChat = [
         name: 'Logout',
         icon: <RiLogoutBoxRLine size="23" color="red " />,
         class: 'w-full flex flex-row px-3 pt-7 pb-3 rounded-lg rounded-t-none  gap-3 mt-3 border-zinc-400 border-t hover:bg-red-400',
-        funtionLogOut: () => { }
+        link: '',
+        funtionLogOut: () => {}
     },
 ]

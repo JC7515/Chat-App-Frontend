@@ -4,18 +4,21 @@ import Image from "next/image"
 import Link from "next/link"
 import { toast, useToasterStore } from "react-hot-toast"
 import { useRef, useEffect, useState } from "react"
-import { A_ADMIN_HAS_DELETED_YOU_CHAT_EVENT, A_PARTICIPANT_CHANGED_TO_ROLE_EVENT, A_PARTICIPANT_DELETED_BY_ADMIN_CHAT_EVENT, A_PARTICIPANT_JOINED_THE_CONTACT_CHAT_EVENT, A_PARTICIPANT_JOINED_THE_GROUP_CHAT_EVENT, A_PARTICIPANT_LEFT_THE_GROUP_CHAT_EVENT, A_PARTICIPANT_UNJOINED_TO_CONTACT_CHAT_EVENT, A_PARTICIPANT_UNJOINED_TO_GROUP_CHAT_EVENT, BLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT, CONTACT_CHAT, CONTACT_MESSAGE_EVENT, CONTACT_NOTIFICATION_MESSAGE_EVENT, ErrorToast, GET_USER_SOCKET_ID_EVENT, GROUP_CHAT, GROUP_MESSAGE_EVENT, GROUP_NOTIFICATION_MESSAGE_EVENT, iconsArrowForNavMenuChats, iconsForChatsPage, iconsPageLogo, infoForNavMenuChat, IS_CONTACT_IN_THE_RECENT_MESSAGES_AREA_EVENT, LoadingToast, NEW_GROUP_MEMBER_EVENT, NotificationToast, SuccessToast,  UNLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT,  USER_IS_ONLINE_EVENT } from "./ChatsContent.data"
+import { A_ADMIN_HAS_DELETED_YOU_CHAT_EVENT, A_PARTICIPANT_CHANGED_TO_ROLE_EVENT, A_PARTICIPANT_DELETED_BY_ADMIN_CHAT_EVENT, A_PARTICIPANT_JOINED_THE_CONTACT_CHAT_EVENT, A_PARTICIPANT_JOINED_THE_GROUP_CHAT_EVENT, A_PARTICIPANT_LEFT_THE_GROUP_CHAT_EVENT, A_PARTICIPANT_UNJOINED_TO_CONTACT_CHAT_EVENT, A_PARTICIPANT_UNJOINED_TO_GROUP_CHAT_EVENT, BLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT, CONTACT_CHAT, CONTACT_MESSAGE_EVENT, CONTACT_NOTIFICATION_MESSAGE_EVENT, ErrorToast, GET_USER_SOCKET_ID_EVENT, GROUP_CHAT, GROUP_MESSAGE_EVENT, GROUP_NOTIFICATION_MESSAGE_EVENT, iconsArrowForNavMenuChats, iconsForChatsPage, iconsPageLogo, infoForNavMenuChat, IS_CONTACT_IN_THE_RECENT_MESSAGES_AREA_EVENT, LoadingToast, NEW_GROUP_MEMBER_EVENT, NotificationToast, SuccessToast, UNLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT, USER_IS_ONLINE_EVENT } from "./ChatsContent.data"
 import io from 'socket.io-client'
-import { bodyMessageToBacked, bodyUserData, contactBodyInList } from "../types"
+import { bodyMessageToBacked, bodyMessageToShowInView, bodyUserData, contactBody, groupBody, PropsForChat, PropsForGroupChat, PropsForMenuChat } from "../types"
 import Message from "./subComponents/message/Message"
 import { v4 as uuidv4 } from 'uuid'
 import { ConvertDateToDayFormat, ConvertDateToHourFormat, GetCookieValue, GetCurrentDateString, TransformDateToCorrectFormatString, TransformDateToEmitionDate } from "@/helpers"
 import { ACCESS_TOKEN_NAME } from "../forLogin/authCard/AuthCard.data"
 import { useRouter } from "next/navigation"
-import { ChangeMemberToAdmin, CreateBlockContact, CreateNewContact, CreateNewContactChatNotification, CreateNewGroupChatNotification, DeleteAllNotifications,  DeleteContact, DeleteContactChatHistory, DeleteMemberOfGroup,  GetAllChatParticipantsOfGroup, GetAllContacts, GetAllGroupChats, GetAllMembersOfGroup, GetAllMessagesFromAContactChat, GetAllMessagesFromAGroupChat, GetAllNotificationsOfUser,  GetContactChatData, GetlistOfUserByUsername, GetUserDataValidated, PermanentlyDeleteGroup, UpdateMessageData,  UpdateStatusOfChatParticipant } from "@/utils"
+import { ChangeMemberToAdmin, CreateBlockContact, CreateNewContact, CreateNewContactChatNotification, CreateNewGroupChatNotification, DeleteAllNotifications, DeleteContact, DeleteContactChatHistory, DeleteMemberOfGroup, GetAllChatParticipantsOfGroup, GetAllContacts, GetAllGroupChats, GetAllMembersOfGroup, GetAllMessagesFromAContactChat, GetAllMessagesFromAGroupChat, GetAllNotificationsOfUser, GetContactChatData, GetlistOfUserByUsername, GetUserDataValidated, PermanentlyDeleteGroup, UpdateMessageData, UpdateStatusOfChatParticipant } from "@/utils"
 import lockImage from '../../../public/lockImage.png'
 import logoForMessageArea from '../../../public/logo-for-message-area.png'
 import { GetUserData } from "@/helpers"
+import MenuChat from "./subComponents/menusChats/menuChat/MenuChat"
+import GroupMenuChat from "./subComponents/menusChats/groupMenuChat/GroupMenuChat"
+import Chat from "./subComponents/chat/Chat"
 
 const socket = io(`${process.env.NEXT_PUBLIC_API_URL_DEV}`, { autoConnect: false })
 
@@ -55,13 +58,12 @@ const ChatsContent = () => {
 
 
     const formToJoinChannel: any = useRef()
-    const formToCreateChannel: any = useRef()
+    const formToCreateChannel = useRef<HTMLFormElement>(null);
     const formToCreateNewContact: any = useRef()
-    const messagesContainer: any = useRef();
-    const recentMessagesArea: any = useRef();
-    const unreadMessagesArea: any = useRef();
-    const getOldMessagesArea: any = useRef();
-    const inputOfInvitationId: any = useRef();
+    const messagesContainer = useRef<HTMLDivElement>(null);
+    const recentMessagesArea = useRef<HTMLDivElement>(null)
+    const getOldMessagesArea = useRef<HTMLDivElement>(null);
+    const inputOfInvitationId = useRef<HTMLInputElement>(null);
 
 
 
@@ -151,7 +153,7 @@ const ChatsContent = () => {
 
 
     // chats list 
-    const groupBody: any = {
+    const groupBody: groupBody = {
         group: {
             group_id: '',
             chat_id: '',
@@ -162,8 +164,12 @@ const ChatsContent = () => {
             invitation_id: '',
             group_password: '',
             members: [],
-        }
+        },
+        notifications_number: 0,
+        role: '',
+        user_id: '',
     }
+
 
 
     const contactBody = {
@@ -172,7 +178,7 @@ const ChatsContent = () => {
         contact_user: {
             user_id: undefined,
             socket_id: undefined,
-            username: undefined,
+            username: '',
             profile_picture: undefined,
             contact_icon: undefined,
             status: undefined,
@@ -185,7 +191,7 @@ const ChatsContent = () => {
         notifications_number: undefined,
     }
 
-    const [contactsList, setContactsList] = useState<[contactBodyInList]>([contactBody])
+    const [contactsList, setContactsList] = useState<contactBody[]>([])
     const [groupChatsList, setGroupChatsList] = useState([groupBody])
 
     const [groupsListQuery, setGroupsListQuery] = useState<any>('')
@@ -201,6 +207,9 @@ const ChatsContent = () => {
     const [loaderWaitingTime, setloaderWaitingTime] = useState<any>(false)
 
 
+    
+
+
 
     const changeValueOfMessage = (e: any) => {
         e.preventDefault()
@@ -214,7 +223,7 @@ const ChatsContent = () => {
 
     // chat login funcions
 
-    const GroupMessageSendingHandle = (e: any) => {
+    const GroupMessageSendingHandle = (e: any): void => {
         e.preventDefault()
 
         if (!message) return
@@ -292,11 +301,13 @@ const ChatsContent = () => {
         })
 
 
-        messagesContainer.current.scrollTop = messagesContainer.current.scrollHeight
+        if (messagesContainer.current) {
+            messagesContainer.current.scrollTop = messagesContainer.current.scrollHeight
+        }
 
 
         // este object es la estrutura que acepta el componente y que debe ir en el arr de chat
-        const messageObjectToView: any = {
+        const messageObjectToView: bodyMessageToShowInView = {
             message_id: messageId,
             chat_id: userData.chat_id,
             user_id: userData.user_id,
@@ -307,8 +318,8 @@ const ChatsContent = () => {
             message_content: message,
             profile_picture: userData.profile_picture,
             message_type: 'text',
+            is_current_user_messsage: true,
             is_read: isMessageRead,
-            is_current_user_messsage: true
         }
 
 
@@ -396,13 +407,14 @@ const ChatsContent = () => {
         }
 
 
-
-        messagesContainer.current.scrollTop = messagesContainer.current.scrollHeight
+        if (messagesContainer.current) {
+            messagesContainer.current.scrollTop = messagesContainer.current.scrollHeight
+        }
 
 
 
         // este object es la estrutura que acepta el componente y que debe ir en el arr de chat
-        const messageObjectToView: any = {
+        const messageObjectToView: bodyMessageToShowInView = {
             message_id: messageId,
             chat_id: userData.chat_id,
             user_id: userData.user_id,
@@ -431,12 +443,15 @@ const ChatsContent = () => {
         try {
             e.preventDefault()
 
+            if (!formToCreateChannel.current) return
+
             // aqui notificacion que indica al usuario que la accion se esta procesando
             const loadingToast = LoadingToast('Creating Group', "top-center")
 
             const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
             console.log(userData)
+
 
             const formData = new FormData(formToCreateChannel.current)
             const payload = {
@@ -490,6 +505,7 @@ const ChatsContent = () => {
 
             // aqui notificacion que indica al usuario que la accion se realizo con exito
             SuccessToast('New Group Created', "top-center")
+
 
             formToCreateChannel.current.reset()
 
@@ -707,9 +723,12 @@ const ChatsContent = () => {
     }
     const OpenCardToCreateChannel = () => {
         // aqui lo que hacemos es resetear todos los valores de lo inputs y textarea que se encuentran dentro del formulario para crear un nuevo channel
-        formToCreateChannel.current.reset()
-        setIsOpenChannelCreationCard(true)
-        setIsOpenCardToSelectOptions(false)
+        if (formToCreateChannel.current) {
+
+            formToCreateChannel.current.reset()
+            setIsOpenChannelCreationCard(true)
+            setIsOpenCardToSelectOptions(false)
+        }
     }
 
     const OpenCardToAddContact = () => {
@@ -964,7 +983,7 @@ const ChatsContent = () => {
 
     const DownToRecentMessageAreaHandler = () => {
 
-        if (!isUserInRecentMessagesArea) {
+        if (!isUserInRecentMessagesArea && messagesContainer.current) {
             messagesContainer.current.scrollTop = messagesContainer.current.scrollHeight
             setNumberOfUnreadMessagesForIcon(0)
         }
@@ -1448,6 +1467,8 @@ const ChatsContent = () => {
 
 
     const CopyInvitationId = () => {
+
+        if (!inputOfInvitationId.current) return
 
         inputOfInvitationId.current.select()
         document.execCommand('copy')
@@ -1944,7 +1965,7 @@ const ChatsContent = () => {
 
                 if (listMessageAlreadyExist) return
 
-                const oldMessagesModified = oldMessagesObtained.map((message: any, index: number) => {
+                const oldMessagesModified = oldMessagesObtained.map((message: any, index: number): bodyMessageToShowInView => {
                     //  aqui pasamos el timestamp recibido de cada mensaje a funciones que convierten la hora y fecha de creacion del mensaje de timestamp a string 
 
                     const timestampToDate = new Date(message.timestamp)
@@ -2349,7 +2370,7 @@ const ChatsContent = () => {
                 console.log(creationDate)
                 console.log(messagesList)
                 // aqui estamos mapeando el array de mensajes obtenidos a la estructura de objeto que acepta el componente message
-                const messagesListModified = messagesList.map((message: any, index: any) => {
+                const messagesListModified = messagesList.map((message: any, index: any): bodyMessageToShowInView => {
                     //  aqui pasamos el timestamp recibido de cada mensaje a funciones que convierten la hora y fecha de creacion del mensaje de timestamp a string 
                     const currentTimestampToDate = new Date(message.timestamp)
 
@@ -2526,7 +2547,7 @@ const ChatsContent = () => {
 
                 // Aqui actualizamos la lista de mensajes del chat
 
-                if (isUserInRecentMessagesArea && !contactData.is_blocked && !contactData.contact_user.contact_blocked_you) {
+                if (isUserInRecentMessagesArea && !contactData.is_blocked && !contactData.contact_user.contact_blocked_you && messagesContainer.current) {
                     setIsUserInRecentMessagesArea(true)
                     messagesContainer.current.scrollTop = messagesContainer.current.scrollHeight
                     setChatMessages([...chatmessages, message])
@@ -2597,7 +2618,7 @@ const ChatsContent = () => {
                 // Aqui actualizamos la lista de mensajes del chat
 
 
-                if (isUserInRecentMessagesArea) {
+                if (isUserInRecentMessagesArea && messagesContainer.current) {
                     setIsUserInRecentMessagesArea(true)
                     messagesContainer.current.scrollTop = messagesContainer.current.scrollHeight
                     setChatMessages([...chatmessages, message])
@@ -3200,12 +3221,12 @@ const ChatsContent = () => {
                 // if (messagesContainer.current && isUserInRecentMessagesArea && !isUserInNewChat && messagesContainer.current.scrollTop !== messagesContainer.current.scrollHeight) {
                 //     messagesContainer.current.scrollTop = messagesContainer.current.scrollHeight
                 // }
-                
+
                 // if (messagesContainer.current && isUserInRecentMessagesArea && messagesContainer.current.scrollTop !== messagesContainer.current.scrollHeight) {
                 //     messagesContainer.current.scrollTop = messagesContainer.current.scrollHeight
                 //     setIsUserInNewChat(false)
                 // }
-                
+
 
 
 
@@ -3289,367 +3310,70 @@ const ChatsContent = () => {
         return (<div className="w-full h-screen flex flex-col justify-center items-center  bg-zinc-900 gap-3 ">{iconsPageLogo[0].icon} <p className="text-white animate-pulse">Chatify</p></div>)
     }
 
+
+    const propsForChat: PropsForChat = {
+        MenuOpenHandler: MenuOpenHandler,
+        userData: userData,
+        groupData: groupData,
+        contactData: contactData,
+        lockImage: lockImage,
+        OpenSettingsOfContactChat: OpenSettingsOfContactChat,
+        messagesContainer: messagesContainer,
+        ValidateUserInRecentMessageArea: ValidateUserInRecentMessageArea,
+        getOldMessagesArea: getOldMessagesArea,
+        logoForMessageArea: logoForMessageArea,
+        BlockingForNotKnowingTheUser: BlockingForNotKnowingTheUser,
+        AddThisContact: AddThisContact,
+        chatmessages: chatmessages,
+        numberOfUnreadMessages: numberOfUnreadMessages,
+        recentMessagesArea: recentMessagesArea,
+        isUserInRecentMessagesArea: isUserInRecentMessagesArea,
+        numberOfUnreadMessagesForIcon: numberOfUnreadMessagesForIcon,
+        DownToRecentMessageAreaHandler: DownToRecentMessageAreaHandler,
+        GroupMessageSendingHandle: GroupMessageSendingHandle,
+        ContactMessageSendingHandle: ContactMessageSendingHandle,
+        message: message,
+        changeValueOfMessage: changeValueOfMessage,
+    }
+
+    const propsForMenuChat: PropsForMenuChat = {
+        menuOpen: menuOpen,
+        isOpenAChat: isOpenAChat,
+        userData: userData,
+        OpenCardToSelectOptions: OpenCardToSelectOptions,
+        groupChatsList: groupChatsList,
+        CloseMenuOpenGroupChatHandler: CloseMenuOpenGroupChatHandler,
+        contactsList: contactsList,
+        CloseMenuOpenContactChatHandler: CloseMenuOpenContactChatHandler,
+        lockImage: lockImage,
+        OpenNavigationMenuHandler: OpenNavigationMenuHandler,
+        navigationMenuOpen: navigationMenuOpen,
+        infoForNavMenuChat: infoForNavMenuChat
+    }
+
+    const propsForGroupChat: PropsForGroupChat = {
+        userData: userData,
+        menuOpen: menuOpen,
+        isOpenAChat: isOpenAChat,
+        BackToMenuHandler: BackToMenuHandler,
+        OpenLeaveToGroupCard: OpenLeaveToGroupCard,
+        groupData: groupData,
+        OpenCardOfChangeRoleOfMember: OpenCardOfChangeRoleOfMember,
+        CopyInvitationId: CopyInvitationId,
+        inputOfInvitationId: inputOfInvitationId,
+        invitationId: invitationId,
+        isInvitationIdCopied: isInvitationIdCopied,
+        OpenNavigationMenuHandler: OpenNavigationMenuHandler,
+        navigationMenuOpen: navigationMenuOpen,
+    }
+
     return (
         <div className="w-full h-screen bg-zinc-800 flex flex-col justify-center items-center">
             <div className="w-full h-screen flex flex-row relative md:w-[97%] md:h-[95%]">
-                <div className={`${menuOpen && !isOpenAChat || userData.chat_type === CONTACT_CHAT && screen.width > 768 || userData.chat_type === '' && screen.width > 768 ? "" : "hidden"}  w-[282px] h-full bg-zinc-900 text-white absolute z-30  md:relative md:w-96 lg:w-96`} >
-                    <div className="w-full h-full grid grid-cols-1 bg-zinc-900 menu-chat-area gap-2 ">
-                        {/* chat de grupos */}
-                        <div className="w-full flex flex-col [grid-area:channels]  justify-start items-start gap-2">
-                            <div className="w-full h-16 flex flex-row justify-between items-center border-b-4 pl-7 pr-5 border-zinc-950 shadow drop-shadow-xl" >
-                                {/* <div>{iconsForChatsPage[5].icon}</div> */}
-                                <h1 className="font-semibold">Channels</h1>
-                                <div className="w-6 h-6 flex flex-col justify-center items-center rounded-md bg-zinc-700" onClick={OpenCardToSelectOptions}>{iconsForChatsPage[0].icon}</div>
-                            </div>
-
-                            <div className="w-full flex flex-col justify-between items-start gap-7 pl-7 pr-5 overflow-hidden ">
-                                <div className="w-full flex flex-row gap-1 p-2 bg-zinc-600 rounded-md">
-                                    {iconsForChatsPage[1].icon}
-                                    <input className="w-full text-xs bg-transparent outline-none" type="text" placeholder="Search" value={groupsListQuery} onChange={FilterGroupsList} />
-                                </div>
-
-                                <div className="w-full h-32 flex flex-col justify-start items-start gap-2 overflow-y-auto scroll-bar">
-                                    {
-                                        groupChatsList.map(({ group, notifications_number }) => {
-                                            return <div id={group.group_id} key={group.group_id} className="w-full py-3 pr-4 flex flex-row justify-start items-center hover:pl-2 gap-3 hover:bg-zinc-700 rounded-lg" onClick={CloseMenuOpenGroupChatHandler}>
-                                                <div id={group.group_id} onClick={CloseMenuOpenGroupChatHandler}>{group.group_icon}</div>
-                                                <h2 id={group.group_id} className="w-auto h-6 whitespace-nowrap overflow-hidden " onClick={CloseMenuOpenGroupChatHandler}>{group.group_name}</h2>
-                                                <p className={`${notifications_number > 0 ? '' : 'hidden'} w-6 h-6 flex flex-row justify-center  items-center ml-auto rounded-full bg-blue-500 text-sm`}>{notifications_number}</p>
-
-                                            </div>
-                                        })
-                                    }
-
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* chat de amigos  */}
-                        <div className="w-full flex flex-col [grid-area:contacts] justify-start items-start pl-7 pr-5 gap-2">
-                            <div className="w-full h-16 flex flex-row justify-between items-center border-t-2 border-zinc-700 ">
-                                <h1 className="font-semibold">Contacts</h1>
-                            </div>
-
-                            <div className="w-full flex flex-col justify-between items-start gap-7 ">
-                                <div className="w-full flex flex-row gap-1 p-2 bg-zinc-600 rounded-md">
-                                    {iconsForChatsPage[1].icon}
-                                    <input className="w-full text-xs bg-transparent outline-none" type="text" placeholder="Search"
-                                        value={contactsListQuery} onChange={FilterContactList} />
-                                </div>
-
-                                <div className="w-full h-32 flex flex-col  justify-start items-start gap-3  overflow-y-auto scroll-bar ">
-                                    {
-                                        contactsList.map((contact: any) => {
-                                            return <div key={contact.chat_id} id={contact.chat_id} className="w-full py-2 pr-4 flex flex-row items-center hover:pl-2 gap-3 hover:bg-zinc-700 rounded-lg" onClick={CloseMenuOpenContactChatHandler}>
-                                                {contact.contact_user.profile_picture ? (<>
-                                                    <Image loading="eager" id={contact.chat_id} alt="profile Picture" src={contact.contact_user.contact_blocked_you ? lockImage : contact.contact_user.profile_picture} width={38} height={38} className="rounded-lg" onClick={CloseMenuOpenContactChatHandler} />
-
-                                                </>)
-                                                    :
-                                                    (<>
-                                                        <div id={contact.chat_id} onClick={CloseMenuOpenContactChatHandler}>{contact.contact_user.contact_icon}</div>
-                                                    </>)}
-
-                                                <h2 id={contact.chat_id} onClick={CloseMenuOpenContactChatHandler} >{contact.contact_user.username}</h2>
-
-                                                {/* Aqui signos de bloqueo y notificaciones */}
-                                                <p className={`${contact.notifications_number > 0 ? '' : 'hidden'} w-6 h-6 flex flex-row justify-center  items-center ml-auto rounded-full bg-blue-500 text-sm`}>{contact.notifications_number}</p>
-                                            </div>
-                                        })
-                                    }
-                                    {/* <div className="w-full h-12 flex flex-row items-center hover:pl-2 gap-3 hover:bg-zinc-700 rounded-lg">
-                                    <div>
-                                        FP
-                                    </div>
-                                    <h2>Felipe Paredes</h2>
-                                </div> */}
-                                </div>
-
-                            </div>
-                        </div>
-
-
-                        <div className='w-full h-20 flex flex-row gap-4  items-center [grid-area:Navigation] self-end pl-7 pr-5' onClick={OpenNavigationMenuHandler} >
-                            {!userData.profile_picture ? (<>
-                                <div className="animate-pulse w-[40px] h-[40px] rounded-xl bg-zinc-200"></div>
-                            </>) : (<>
-                                <Image loading="eager" src={userData.profile_picture} className='rounded-lg' width="40" height="40" alt='profileImage' />
-                            </>)
-                            }
-                            <p className=" md:flex md:flex-col md:justify-center">{userData.username}</p>
-                            <div className="hidden md:flex-1 md:flex md:flex-col md:justify-center-end md:items-end">{
-
-                                navigationMenuOpen ? (iconsArrowForNavMenuChats[1].icon) : (iconsArrowForNavMenuChats[0].icon)
-
-                            }</div>
-                            {
-                                navigationMenuOpen &&
-                                <ul className='w-56 absolute bottom-20 left-9 flex flex-col justify-between items-center gap-1 bg-zinc-800 border-zinc-700 border-2 rounded-xl p-4' >
-                                    {
-                                        infoForNavMenuChat.map((elem) => {
-                                            return elem.funtionLogOut ?
-                                                <li key={elem.id} className={elem.class}>{elem.icon}<span>{elem.name}</span></li>
-                                                :
-                                                <Link key={elem.id} href={elem.link} className='w-full' ><li className={elem.class}>{elem.icon}<span>{elem.name}</span></li></Link>
-                                        })
-                                    }
-                                </ul>
-                            }
-
-                        </div>
-                    </div>
-
-
-                </div>
-
-                <div className={`${userData.chat_type === GROUP_CHAT && !menuOpen && isOpenAChat ? "" : "hidden"}  w-[282px] h-full bg-zinc-900 text-white absolute z-30 md:relative md:w-96 lg:w-96`} >
-                    <div className="w-full h-full grid grid-cols-1 bg-zinc-900 menu-chat-area gap-6 ">
-                        {/* chat de grupos */}
-                        <div className="w-full flex flex-col [grid-area:channels]  justify-start items-start gap-2">
-                            <div className="w-full h-16 flex flex-row justify-start items-center gap-4 border-b-4 pl-3 pr-5 border-zinc-950 shadow drop-shadow-xl" >
-                                <div className="w-6 h-6 flex flex-col justify-center items-center" onClick={BackToMenuHandler}>{iconsForChatsPage[5].icon}</div>
-                                <h1 className="font-semibold">All Channels</h1>
-
-                                <div className="w-6 h-6 flex felx-col justify-center items-center ml-auto rounded-full hover:bg-red-500" onClick={OpenLeaveToGroupCard}>{iconsForChatsPage[10].icon}</div>
-                            </div>
-
-                            <div className="w-full flex flex-col justify-between items-start gap-7 pl-7 pr-5 ">
-                                <div className="w-full flex flex-col gap-4">
-                                    <h3 className="text-xl font-semibold">{groupData.group_name}</h3>
-                                    <p>{groupData.description}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* chat de amigos  */}
-                        <div className="w-full flex flex-col [grid-area:contacts] justify-start items-start pl-7 pr-5 gap-5">
-                            <div className="w-full h-10 flex flex-row justify-between items-center  border-zinc-700 ">
-                                <h3 className="text-xl font-semibold">Members</h3>
-                            </div>
-
-                            <div className="w-full h-56 flex flex-col justify-start items-start gap-3 overflow-y-auto scroll-bar">
-                                {/* <div className="w-full flex flex-col  justify-between items-start gap-3"> */}
-                                {
-                                    groupData.members.map((member: any) => {
-                                        return <div id={member.user.user_id} key={member.user.user_id} className="w-full h-12  flex flex-row items-center hover:pl-2 gap-3 " onClick={OpenCardOfChangeRoleOfMember}>
-                                            <Image loading="eager" src={member.user.profile_picture} width="35" height="35" className="rounded-md" alt='memberimageProfile' id={member.user.user_id} onClick={OpenCardOfChangeRoleOfMember} />
-                                            <p id={member.user.user_id} className='w-8/12 whitespace-nowrap overflow-hidden truncate' onClick={OpenCardOfChangeRoleOfMember}>{member.user.name}</p>
-                                            <div id={member.user.user_id} className={`${member.status === 'active' ? 'bg-green-400' : 'bg-gray-400'}  w-2 h-2 rounded-full`} onClick={OpenCardOfChangeRoleOfMember}></div>
-                                            <div className={`${member.role === 'admin' ? '' : 'hidden'} flex flex-col justify-center items-center w-4 h-4`} >{iconsForChatsPage[7].icon}</div>
-                                        </div>
-
-                                    })
-                                }
-
-                            </div>
-
-                            {
-                                groupData.members.map((member: any) => {
-                                    return member.role === 'admin' && member.user.user_id === userData.user_id ? (<div id={member.user.user_id} key={member.user.group_id} className='w-full h-14 self flex flex-row justify-between items-center bg-zinc-700 p-3 gap-5 rounded-xl' onClick={CopyInvitationId}>
-                                        <input ref={inputOfInvitationId} id={member.user.user_id} className='w-full flex flex-col justify-center items-start   whitespace-nowrap overflow-hidden selection:bg-transparent bg-zinc-700  text-white outline-none caret-transparent select ' onClick={CopyInvitationId} defaultValue={invitationId} />
-
-                                        <div onClick={CopyInvitationId} className='flex flex-col justify-center items-center w-4 h-4'>{!isInvitationIdCopied ? iconsForChatsPage[8].icon : iconsForChatsPage[9].icon}</div>
-                                    </div>) : (<></>)
-
-                                })
-                            }
-
-                        </div>
-
-
-                        <div className='w-full h-20 flex flex-row gap-4  items-center [grid-area:Navigation] self-end pl-7 pr-5' onClick={OpenNavigationMenuHandler} >
-                            {!userData.profile_picture ? (<>
-                                <div className="animate-pulse w-[40px] h-[40px] rounded-xl bg-zinc-700"></div>
-                            </>) : (<>
-                                <Image loading="eager" src={userData.profile_picture} className='rounded-lg' width="40" height="40" alt='profileImage' />
-                            </>)
-                            }
-                            <p className=" md:flex md:flex-col md:justify-center">{userData.username}</p>
-                            <div className="hidden md:flex-1 md:flex md:flex-col md:justify-center-end md:items-end">{
-
-                                menuOpen ? (iconsArrowForNavMenuChats[1].icon) : (iconsArrowForNavMenuChats[0].icon)
-
-                            }</div>
-                            {
-                                navigationMenuOpen &&
-                                <ul className='w-56 absolute bottom-20 left-9 flex flex-col justify-between items-center gap-1 bg-zinc-800 border-zinc-700 border-2 rounded-xl p-4' >
-                                    {
-                                        infoForNavMenuChat.map((elem) => {
-                                            return elem.funtionLogOut ?
-                                                <li key={elem.id} className={elem.class}>{elem.icon}<span>{elem.name}</span></li>
-                                                :
-                                                <Link href={elem.link} className='w-full' ><li key={elem.id} className={elem.class}>{elem.icon}<span>{elem.name}</span></li></Link>
-                                        })
-                                    }
-                                </ul>
-                            }
-                        </div>
-                    </div>
-
-
-                </div>
-
-
-
-
-
-                {/* ************* Chats **************** */}
-                <div className="w-full h-full flex flex-col justify-between text-white bg-zinc-700 pb-1">
-                    <div className="relative w-full min-h-[63px] flex flex-row justify-start items-center bg-zinc-700 px-4 z-10 border-zinc-950 shadow drop-shadow-xl">
-                        <div className={`mr-3 md:hidden`} onClick={MenuOpenHandler} >{iconsForChatsPage[3].icon}</div>
-
-
-
-                        {/* **** aqui se mostrara el titulo del chat de grupo **** */}
-                        {userData.chat_type === GROUP_CHAT && (<>
-
-                            <div className="w-auto h-4/5 flex flex-row items-center gap-3 ">
-                                <div className="w-10 h-10 flex flex-col justify-center items-center rounded-lg bg-zinc-900 ">{groupData.group_icon}</div>
-                                <h2 className="w-48 font-semibold text-lg truncate overflow-hidden">{groupData.group_name}</h2>
-
-                            </div>
-
-                        </>)
-                        }
-
-                        {/* **** aqui se mostrara el titulo del chat de contacto **** */}
-                        {
-                            userData.chat_type === CONTACT_CHAT && (<>
-
-                                <div className="w-auto h-4/5 flex flex-row items-center gap-3 ">
-                                    <Image alt="Contact Picture" src={contactData.contact_user.contact_blocked_you || !contactData.contact_user.profile_picture ? lockImage : contactData.contact_user.profile_picture} width='40' height="40" className="rounded-lg" />
-                                    <div className="flex flex-col gap-1">
-                                        <h2 className="font-semibold text-base">{contactData.contact_user.username}</h2>
-                                        <span className={`${contactData.contact_user.socket_id === 'empty' || contactData.contact_user.contact_blocked_you || contactData.is_blocked ? 'hidden' : ''} text-xs`}>{'online'}</span>
-                                    </div>
-                                    <div className={`${contactData.is_blocked ? '' : 'hidden'} flex flex-row gap-2 items-center `}> {iconsForChatsPage[12].icon}
-                                        <p className="p-1 bg-red-700 rounded-lg">Bloqued</p>
-                                    </div>
-
-                                </div>
-
-                            </>)
-
-                        }
-
-                        {/* **** aqui no se mostrara nada en caso de que el usuario no haya seleccionado ningun chat     **** */}
-                        {
-                            userData.chat_type === '' && (
-                                <div className="w-auto h-4/5"></div>)
-                        }
-
-                        {
-                            userData.chat_type === CONTACT_CHAT && (<>
-                                <div onClick={OpenSettingsOfContactChat} className={`flex flex-row justify-center items-center w-8 h-8 absolute z-40 right-5`}>{iconsForChatsPage[11].icon}</div>
-                            </>)
-
-                        }
-
-                    </div>
-                    <div ref={messagesContainer} onScroll={ValidateUserInRecentMessageArea} className={`${userData.chat_type === CONTACT_CHAT || userData.chat_type === GROUP_CHAT ? 'p-2 default-background-for-chat py-[50px] lg:pt-[10px] lg:pb-[0px] md:p-7 scroll-bar overflow-y-auto ' : ''} relative  w-full h-full flex flex-col justify-start items-start  gap-6  `}>
-                        {/* este elemento sirve como una interseccion para que obtengamos una cantidad de mensajes antiguos cada vez que la vista del usuario pase por esta area */}
-                        <div className="relative w-full h-[0.5px]">
-                            <div ref={getOldMessagesArea} className="absolute w-full h-[60px] top-0 left-auto z-10"></div>
-                        </div>
-
-                        {
-
-                            userData.chat_type === '' && (<div className="w-full h-full flex flex-col justify-center items-center gap-7 ">
-                                <Image alt="logoForMessageArea Picture" src={logoForMessageArea}
-                                    width="280" height="280" className="w-[290px] h-[290px] md:w-[300px] md:h-[300px]" />
-                                <div className="w-[80%] flex flex-col items-center justify-center gap-5 sm:w-[70%]">
-                                    <p className="w-full text-zinc-100 text-center text-xl font-extralight md:text-2xl" >Download Chatify soon in ios and android application</p>
-                                    <p className="text-zinc-400 text-sm text-center font-light sm:text-base" >Chatify soon in ios and android application</p>
-
-                                </div>
-                                {/* <button className="text-zinc-200 py-3 px-5 rounded-full font-light bg-blue-500 hover:bg-blue-200">Get more information</button>
-                                 */}
-                                <div className="text-zinc-200 py-3 px-5 rounded-full font-light cursor-pointer bg-blue-500 hover:bg-blue-700 z-20 ">Get more information</div>
-                            </div>)
-                        }
-
-                        {
-                            userData.chat_type === CONTACT_CHAT && !contactData.is_contact_validated && (<>
-                                <div className="w-full flex flex-col items-center gap-7 bg-zinc-800 pt-8 pb-10 rounded-lg">
-                                    <span>¿Do you know this user?</span>
-
-                                    <button onClick={BlockingForNotKnowingTheUser} className="w-72 py-3 border-red-500 hover:bg-red-500 border-2 rounded-lg text-sm text-center ">Block This Contact</button>
-
-                                    <button onClick={AddThisContact} className="w-72 py-3 border-zinc-200 hover:bg-zinc-200 border-2 rounded-lg text-sm text-center ">Add This Contact</button>
-                                </div>
-                            </>)
-                        }
-
-
-                        {
-                            chatmessages.length > 0 ? (
-                                <>{
-                                    chatmessages.map((message: any) => {
-                                        return (<>
-                                            {message.message_type === 'text' && (
-                                                <>
-                                                    <Message key={message.message_id} message={message} />
-
-                                                </>)
-                                            }
-                                            {message.message_type === 'unreadMessage' && (
-                                                <>
-                                                    <p id={message.notification_id} key={message.notification_id} ref={unreadMessagesArea} className="mx-auto text-xs p-3 bg-zinc-900 rounded-xl">{`${numberOfUnreadMessages} unread messages`}</p>
-                                                </>)
-                                            }
-
-                                            {message.message_type === 'unionDate' && (
-                                                <>
-                                                    <div id={message.message_id} key={message.message_id} className="w-full flex flex-col justify-center items-center mx-auto ">
-                                                        <p className="mx-auto text-xs p-4 bg-zinc-900 rounded-xl">{`user ${message.username} joined the group`}</p>
-                                                    </div>
-                                                </>)
-                                            }
-                                            {message.message_type === 'emitionDate' && (
-                                                <>
-                                                    <div id={message.emition_id} key={message.emition_id} className="w-full flex flex-col justify-center items-center mx-auto   ">
-                                                        <p className="mx-auto text-sm p-4 bg-zinc-900 rounded-xl">{message.emition_date}</p>
-                                                    </div>
-                                                </>)
-                                            }
-                                        </>
-                                        )
-                                    })
-                                }</>)
-                                :
-                                (<div className="w-full h-full"></div>)
-
-
-                        }
-                        {/* este elemento es una interseccion que nos sirve para saber si el usuario se encuentra mierando los mensajes mas reciente o esta navegando por los mensajes antiguos*/}
-                        <div className={`${userData.chat_type === CONTACT_CHAT || userData.chat_type === GROUP_CHAT ? '' : 'hidden'} relative w-full h-[0.5px]`}>
-                            <div ref={recentMessagesArea} className="absolute w-full h-[190px] bottom-0 left-auto z-10"></div>
-                        </div>
-                    </div>
-                    {/* bg-zinc-700 */}
-                    <div className={`${userData.chat_type === CONTACT_CHAT || userData.chat_type === GROUP_CHAT ? '' : 'hidden'} absolute w-full h-[70px] left-0 bottom-0 z-10 flex flex-col py-[10px]  justify-center items-center bg-zinc-700 lg:relative`}>
-                        <div className="relative w-full h-full flex flex-row justify-center items-center">
-                            <div className="absolute bottom-[68px] right-3 w-28 flex flex-row justify-end items-end gap-4 z-10 md:right-20 md:bottom-[68px] ">
-                                {userData.chat_id ?
-                                    (<>
-                                        <div className={`${!isUserInRecentMessagesArea && numberOfUnreadMessagesForIcon ? "" : "hidden"} w-11 h-11 flex flex-col justify-center items-center bg-blue-500 rounded-full font-medium`}>{!isUserInRecentMessagesArea && numberOfUnreadMessagesForIcon ? numberOfUnreadMessagesForIcon : ''}</div>
-                                        <div className={`${userData.chat_id && isUserInRecentMessagesArea ? "hidden" : ""} w-14 h-14 flex flex-col justify-center items-center bg-zinc-950 rounded-full hover:bg-zinc-800`} onClick={DownToRecentMessageAreaHandler}>{(userData.chat_id && isUserInRecentMessagesArea) ? <></> : iconsForChatsPage[6].icon}</div>
-                                    </>)
-                                    :
-                                    (<></>)
-                                }
-                            </div>
-                            {/* bg-zinc-600 */}
-                            <form onSubmit={userData.chat_type === GROUP_CHAT ? GroupMessageSendingHandle : ContactMessageSendingHandle} className={`${userData.chat_id ? "" : "hidden"} relative h-14 w-[95%] flex flex-row justify-between items-center pr-2 bg-zinc-600 rounded-md`}>
-                                <input className="outline-none flex-1 bg-transparent text-xs p-3" type="text" placeholder="Type a message here" value={message} onChange={changeValueOfMessage} />
-                                <button className="w-9 h-10 flex flex-col justify-center items-center bg-blue-500 rounded-lg">
-                                    {iconsForChatsPage[2].icon}
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
+                <MenuChat props={propsForMenuChat} />
+                <GroupMenuChat props={propsForGroupChat} />
+                
+                <Chat props={propsForChat} />
 
                 {/* icon close */}
                 <div className={`${isOpenAChat || menuOpen ? "" : "hidden"} absolute w-9 h-9 flex flex-col justify-center items-center top-[16px] right-[3px] z-20 md:top-[12px] md:right-[14px] sm:top-[16px] sm:right-[20px] md:hidden`} onClick={MenuCloseHandler} >
@@ -3838,6 +3562,551 @@ const ChatsContent = () => {
             </div >
         </div>
     )
+
+
+    // return (
+    //     <div className="w-full h-screen bg-zinc-800 flex flex-col justify-center items-center">
+    //         <div className="w-full h-screen flex flex-row relative md:w-[97%] md:h-[95%]">
+    //             <div className={`${menuOpen && !isOpenAChat || userData.chat_type === CONTACT_CHAT && screen.width > 768 || userData.chat_type === '' && screen.width > 768 ? "" : "hidden"}  w-[282px] h-full bg-zinc-900 text-white absolute z-30  md:relative md:w-96 lg:w-96`} >
+    //                 <div className="w-full h-full grid grid-cols-1 bg-zinc-900 menu-chat-area gap-2 ">
+    //                     {/* chat de grupos */}
+    //                     <div className="w-full flex flex-col [grid-area:channels]  justify-start items-start gap-2">
+    //                         <div className="w-full h-16 flex flex-row justify-between items-center border-b-4 pl-7 pr-5 border-zinc-950 shadow drop-shadow-xl" >
+    //                             {/* <div>{iconsForChatsPage[5].icon}</div> */}
+    //                             <h1 className="font-semibold">Channels</h1>
+    //                             <div className="w-6 h-6 flex flex-col justify-center items-center rounded-md bg-zinc-700" onClick={OpenCardToSelectOptions}>{iconsForChatsPage[0].icon}</div>
+    //                         </div>
+
+    //                         <div className="w-full flex flex-col justify-between items-start gap-7 pl-7 pr-5 overflow-hidden ">
+    //                             <div className="w-full flex flex-row gap-1 p-2 bg-zinc-600 rounded-md">
+    //                                 {iconsForChatsPage[1].icon}
+    //                                 <input className="w-full text-xs bg-transparent outline-none" type="text" placeholder="Search" value={groupsListQuery} onChange={FilterGroupsList} />
+    //                             </div>
+
+    //                             <div className="w-full h-32 flex flex-col justify-start items-start gap-2 overflow-y-auto scroll-bar">
+    //                                 {
+    //                                     groupChatsList.map(({ group, notifications_number }: any) => {
+    //                                         return <div id={group.group_id} key={group.group_id} className="w-full py-3 pr-4 flex flex-row justify-start items-center hover:pl-2 gap-3 hover:bg-zinc-700 rounded-lg" onClick={CloseMenuOpenGroupChatHandler}>
+    //                                             <div id={group.group_id} onClick={CloseMenuOpenGroupChatHandler}>{group.group_icon}</div>
+    //                                             <h2 id={group.group_id} className="w-auto h-6 whitespace-nowrap overflow-hidden " onClick={CloseMenuOpenGroupChatHandler}>{group.group_name}</h2>
+    //                                             <p className={`${notifications_number > 0 ? '' : 'hidden'} w-6 h-6 flex flex-row justify-center  items-center ml-auto rounded-full bg-blue-500 text-sm`}>{notifications_number}</p>
+
+    //                                         </div>
+    //                                     })
+    //                                 }
+
+    //                             </div>
+    //                         </div>
+    //                     </div>
+
+    //                     {/* chat de amigos  */}
+    //                     <div className="w-full flex flex-col [grid-area:contacts] justify-start items-start pl-7 pr-5 gap-2">
+    //                         <div className="w-full h-16 flex flex-row justify-between items-center border-t-2 border-zinc-700 ">
+    //                             <h1 className="font-semibold">Contacts</h1>
+    //                         </div>
+
+    //                         <div className="w-full flex flex-col justify-between items-start gap-7 ">
+    //                             <div className="w-full flex flex-row gap-1 p-2 bg-zinc-600 rounded-md">
+    //                                 {iconsForChatsPage[1].icon}
+    //                                 <input className="w-full text-xs bg-transparent outline-none" type="text" placeholder="Search"
+    //                                     value={contactsListQuery} onChange={FilterContactList} />
+    //                             </div>
+
+    //                             <div className="w-full h-32 flex flex-col  justify-start items-start gap-3  overflow-y-auto scroll-bar ">
+    //                                 {
+    //                                     contactsList.map((contact: any) => {
+    //                                         return <div key={contact.chat_id} id={contact.chat_id} className="w-full py-2 pr-4 flex flex-row items-center hover:pl-2 gap-3 hover:bg-zinc-700 rounded-lg" onClick={CloseMenuOpenContactChatHandler}>
+    //                                             {contact.contact_user.profile_picture ? (<>
+    //                                                 <Image loading="eager" id={contact.chat_id} alt="profile Picture" src={contact.contact_user.contact_blocked_you ? lockImage : contact.contact_user.profile_picture} width={38} height={38} className="rounded-lg" onClick={CloseMenuOpenContactChatHandler} />
+
+    //                                             </>)
+    //                                                 :
+    //                                                 (<>
+    //                                                     <div id={contact.chat_id} onClick={CloseMenuOpenContactChatHandler}>{contact.contact_user.contact_icon}</div>
+    //                                                 </>)}
+
+    //                                             <h2 id={contact.chat_id} onClick={CloseMenuOpenContactChatHandler} >{contact.contact_user.username}</h2>
+
+    //                                             {/* Aqui signos de bloqueo y notificaciones */}
+    //                                             <p className={`${contact.notifications_number > 0 ? '' : 'hidden'} w-6 h-6 flex flex-row justify-center  items-center ml-auto rounded-full bg-blue-500 text-sm`}>{contact.notifications_number}</p>
+    //                                         </div>
+    //                                     })
+    //                                 }
+    //                             </div>
+
+    //                         </div>
+    //                     </div>
+
+
+    //                     <div className='w-full h-20 flex flex-row gap-4  items-center [grid-area:Navigation] self-end pl-7 pr-5' onClick={OpenNavigationMenuHandler} >
+    //                         {!userData.profile_picture ? (<>
+    //                             <div className="animate-pulse w-[40px] h-[40px] rounded-xl bg-zinc-200"></div>
+    //                         </>) : (<>
+    //                             <Image loading="eager" src={userData.profile_picture} className='rounded-lg' width="40" height="40" alt='profileImage' />
+    //                         </>)
+    //                         }
+    //                         <p className=" md:flex md:flex-col md:justify-center">{userData.username}</p>
+    //                         <div className="hidden md:flex-1 md:flex md:flex-col md:justify-center-end md:items-end">{
+
+    //                             navigationMenuOpen ? (iconsArrowForNavMenuChats[1].icon) : (iconsArrowForNavMenuChats[0].icon)
+
+    //                         }</div>
+    //                         {
+    //                             navigationMenuOpen &&
+    //                             <ul className='w-56 absolute bottom-20 left-9 flex flex-col justify-between items-center gap-1 bg-zinc-800 border-zinc-700 border-2 rounded-xl p-4' >
+    //                                 {
+    //                                     infoForNavMenuChat.map((elem) => {
+    //                                         return elem.funtionLogOut ?
+    //                                             <li key={elem.id} className={elem.class}>{elem.icon}<span>{elem.name}</span></li>
+    //                                             :
+    //                                             <Link key={elem.id} href={elem.link} className='w-full' ><li className={elem.class}>{elem.icon}<span>{elem.name}</span></li></Link>
+    //                                     })
+    //                                 }
+    //                             </ul>
+    //                         }
+
+    //                     </div>
+    //                 </div>
+
+
+    //             </div>
+
+    //             <div className={`${userData.chat_type === GROUP_CHAT && !menuOpen && isOpenAChat ? "" : "hidden"}  w-[282px] h-full bg-zinc-900 text-white absolute z-30 md:relative md:w-96 lg:w-96`} >
+    //                 <div className="w-full h-full grid grid-cols-1 bg-zinc-900 menu-chat-area gap-6 ">
+    //                     {/* chat de grupos */}
+    //                     <div className="w-full flex flex-col [grid-area:channels]  justify-start items-start gap-2">
+    //                         <div className="w-full h-16 flex flex-row justify-start items-center gap-4 border-b-4 pl-3 pr-5 border-zinc-950 shadow drop-shadow-xl" >
+    //                             <div className="w-6 h-6 flex flex-col justify-center items-center" onClick={BackToMenuHandler}>{iconsForChatsPage[5].icon}</div>
+    //                             <h1 className="font-semibold">All Channels</h1>
+
+    //                             <div className="w-6 h-6 flex felx-col justify-center items-center ml-auto rounded-full hover:bg-red-500" onClick={OpenLeaveToGroupCard}>{iconsForChatsPage[10].icon}</div>
+    //                         </div>
+
+    //                         <div className="w-full flex flex-col justify-between items-start gap-7 pl-7 pr-5 ">
+    //                             <div className="w-full flex flex-col gap-4">
+    //                                 <h3 className="text-xl font-semibold">{groupData.group_name}</h3>
+    //                                 <p>{groupData.description}</p>
+    //                             </div>
+    //                         </div>
+    //                     </div>
+
+    //                     {/* chat de amigos  */}
+    //                     <div className="w-full flex flex-col [grid-area:contacts] justify-start items-start pl-7 pr-5 gap-5">
+    //                         <div className="w-full h-10 flex flex-row justify-between items-center  border-zinc-700 ">
+    //                             <h3 className="text-xl font-semibold">Members</h3>
+    //                         </div>
+
+    //                         <div className="w-full h-56 flex flex-col justify-start items-start gap-3 overflow-y-auto scroll-bar">
+    //                             {/* <div className="w-full flex flex-col  justify-between items-start gap-3"> */}
+    //                             {
+    //                                 groupData.members.map((member: any) => {
+    //                                     return <div id={member.user.user_id} key={member.user.user_id} className="w-full h-12  flex flex-row items-center hover:pl-2 gap-3 " onClick={OpenCardOfChangeRoleOfMember}>
+    //                                         <Image loading="eager" src={member.user.profile_picture} width="35" height="35" className="rounded-md" alt='memberimageProfile' id={member.user.user_id} onClick={OpenCardOfChangeRoleOfMember} />
+    //                                         <p id={member.user.user_id} className='w-8/12 whitespace-nowrap overflow-hidden truncate' onClick={OpenCardOfChangeRoleOfMember}>{member.user.name}</p>
+    //                                         <div id={member.user.user_id} className={`${member.status === 'active' ? 'bg-green-400' : 'bg-gray-400'}  w-2 h-2 rounded-full`} onClick={OpenCardOfChangeRoleOfMember}></div>
+    //                                         <div className={`${member.role === 'admin' ? '' : 'hidden'} flex flex-col justify-center items-center w-4 h-4`} >{iconsForChatsPage[7].icon}</div>
+    //                                     </div>
+
+    //                                 })
+    //                             }
+
+    //                         </div>
+
+    //                         {
+    //                             groupData.members.map((member: any) => {
+    //                                 return member.role === 'admin' && member.user.user_id === userData.user_id ? (<div id={member.user.user_id} key={member.user.group_id} className='w-full h-14 self flex flex-row justify-between items-center bg-zinc-700 p-3 gap-5 rounded-xl' onClick={CopyInvitationId}>
+    //                                     <input ref={inputOfInvitationId} id={member.user.user_id} className='w-full flex flex-col justify-center items-start   whitespace-nowrap overflow-hidden selection:bg-transparent bg-zinc-700  text-white outline-none caret-transparent select ' onClick={CopyInvitationId} defaultValue={invitationId} />
+
+    //                                     <div onClick={CopyInvitationId} className='flex flex-col justify-center items-center w-4 h-4'>{!isInvitationIdCopied ? iconsForChatsPage[8].icon : iconsForChatsPage[9].icon}</div>
+    //                                 </div>) : (<></>)
+
+    //                             })
+    //                         }
+
+    //                     </div>
+
+
+    //                     <div className='w-full h-20 flex flex-row gap-4  items-center [grid-area:Navigation] self-end pl-7 pr-5' onClick={OpenNavigationMenuHandler} >
+    //                         {!userData.profile_picture ? (<>
+    //                             <div className="animate-pulse w-[40px] h-[40px] rounded-xl bg-zinc-700"></div>
+    //                         </>) : (<>
+    //                             <Image loading="eager" src={userData.profile_picture} className='rounded-lg' width="40" height="40" alt='profileImage' />
+    //                         </>)
+    //                         }
+    //                         <p className=" md:flex md:flex-col md:justify-center">{userData.username}</p>
+    //                         <div className="hidden md:flex-1 md:flex md:flex-col md:justify-center-end md:items-end">{
+
+    //                             menuOpen ? (iconsArrowForNavMenuChats[1].icon) : (iconsArrowForNavMenuChats[0].icon)
+
+    //                         }</div>
+    //                         {
+    //                             navigationMenuOpen &&
+    //                             <ul className='w-56 absolute bottom-20 left-9 flex flex-col justify-between items-center gap-1 bg-zinc-800 border-zinc-700 border-2 rounded-xl p-4' >
+    //                                 {
+    //                                     infoForNavMenuChat.map((elem) => {
+    //                                         return elem.funtionLogOut ?
+    //                                             <li key={elem.id} className={elem.class}>{elem.icon}<span>{elem.name}</span></li>
+    //                                             :
+    //                                             <Link href={elem.link} className='w-full' ><li key={elem.id} className={elem.class}>{elem.icon}<span>{elem.name}</span></li></Link>
+    //                                     })
+    //                                 }
+    //                             </ul>
+    //                         }
+    //                     </div>
+    //                 </div>
+
+
+    //             </div>
+
+
+
+
+
+    //             {/* ************* Chats **************** */}
+    //             <div className="w-full h-full flex flex-col justify-between text-white bg-zinc-700 pb-1">
+    //                 <div className="relative w-full min-h-[63px] flex flex-row justify-start items-center bg-zinc-700 px-4 z-10 border-zinc-950 shadow drop-shadow-xl">
+    //                     <div className={`mr-3 md:hidden`} onClick={MenuOpenHandler} >{iconsForChatsPage[3].icon}</div>
+
+
+
+    //                     {/* **** aqui se mostrara el titulo del chat de grupo **** */}
+    //                     {userData.chat_type === GROUP_CHAT && (<>
+
+    //                         <div className="w-auto h-4/5 flex flex-row items-center gap-3 ">
+    //                             <div className="w-10 h-10 flex flex-col justify-center items-center rounded-lg bg-zinc-900 ">{groupData.group_icon}</div>
+    //                             <h2 className="w-48 font-semibold text-lg truncate overflow-hidden">{groupData.group_name}</h2>
+
+    //                         </div>
+
+    //                     </>)
+    //                     }
+
+    //                     {/* **** aqui se mostrara el titulo del chat de contacto **** */}
+    //                     {
+    //                         userData.chat_type === CONTACT_CHAT && (<>
+
+    //                             <div className="w-auto h-4/5 flex flex-row items-center gap-3 ">
+    //                                 <Image alt="Contact Picture" src={contactData.contact_user.contact_blocked_you || !contactData.contact_user.profile_picture ? lockImage : contactData.contact_user.profile_picture} width='40' height="40" className="rounded-lg" />
+    //                                 <div className="flex flex-col gap-1">
+    //                                     <h2 className="font-semibold text-base">{contactData.contact_user.username}</h2>
+    //                                     <span className={`${contactData.contact_user.socket_id === 'empty' || contactData.contact_user.contact_blocked_you || contactData.is_blocked ? 'hidden' : ''} text-xs`}>{'online'}</span>
+    //                                 </div>
+    //                                 <div className={`${contactData.is_blocked ? '' : 'hidden'} flex flex-row gap-2 items-center `}> {iconsForChatsPage[12].icon}
+    //                                     <p className="p-1 bg-red-700 rounded-lg">Bloqued</p>
+    //                                 </div>
+
+    //                             </div>
+
+    //                         </>)
+
+    //                     }
+
+    //                     {/* **** aqui no se mostrara nada en caso de que el usuario no haya seleccionado ningun chat     **** */}
+    //                     {
+    //                         userData.chat_type === '' && (
+    //                             <div className="w-auto h-4/5"></div>)
+    //                     }
+
+    //                     {
+    //                         userData.chat_type === CONTACT_CHAT && (<>
+    //                             <div onClick={OpenSettingsOfContactChat} className={`flex flex-row justify-center items-center w-8 h-8 absolute z-40 right-5`}>{iconsForChatsPage[11].icon}</div>
+    //                         </>)
+
+    //                     }
+
+    //                 </div>
+    //                 <div ref={messagesContainer} onScroll={ValidateUserInRecentMessageArea} className={`${userData.chat_type === CONTACT_CHAT || userData.chat_type === GROUP_CHAT ? 'p-2 default-background-for-chat py-[50px] lg:pt-[10px] lg:pb-[0px] md:p-7 scroll-bar overflow-y-auto ' : ''} relative  w-full h-full flex flex-col justify-start items-start  gap-6  `}>
+    //                     {/* este elemento sirve como una interseccion para que obtengamos una cantidad de mensajes antiguos cada vez que la vista del usuario pase por esta area */}
+    //                     <div className="relative w-full h-[0.5px]">
+    //                         <div ref={getOldMessagesArea} className="absolute w-full h-[60px] top-0 left-auto z-10"></div>
+    //                     </div>
+
+    //                     {
+
+    //                         userData.chat_type === '' && (<div className="w-full h-full flex flex-col justify-center items-center gap-7 ">
+    //                             <Image alt="logoForMessageArea Picture" src={logoForMessageArea}
+    //                                 width="280" height="280" className="w-[290px] h-[290px] md:w-[300px] md:h-[300px]" />
+    //                             <div className="w-[80%] flex flex-col items-center justify-center gap-5 sm:w-[70%]">
+    //                                 <p className="w-full text-zinc-100 text-center text-xl font-extralight md:text-2xl" >Download Chatify soon in ios and android application</p>
+    //                                 <p className="text-zinc-400 text-sm text-center font-light sm:text-base" >Chatify soon in ios and android application</p>
+
+    //                             </div>
+    //                             {/* <button className="text-zinc-200 py-3 px-5 rounded-full font-light bg-blue-500 hover:bg-blue-200">Get more information</button>
+    //                              */}
+    //                             <div className="text-zinc-200 py-3 px-5 rounded-full font-light cursor-pointer bg-blue-500 hover:bg-blue-700 z-20 ">Get more information</div>
+    //                         </div>)
+    //                     }
+
+    //                     {
+    //                         userData.chat_type === CONTACT_CHAT && !contactData.is_contact_validated && (<>
+    //                             <div className="w-full flex flex-col items-center gap-7 bg-zinc-800 pt-8 pb-10 rounded-lg">
+    //                                 <span>¿Do you know this user?</span>
+
+    //                                 <button onClick={BlockingForNotKnowingTheUser} className="w-72 py-3 border-red-500 hover:bg-red-500 border-2 rounded-lg text-sm text-center ">Block This Contact</button>
+
+    //                                 <button onClick={AddThisContact} className="w-72 py-3 border-zinc-200 hover:bg-zinc-200 border-2 rounded-lg text-sm text-center ">Add This Contact</button>
+    //                             </div>
+    //                         </>)
+    //                     }
+
+
+    //                     {
+    //                         chatmessages.length > 0 ? (
+    //                             <>{
+    //                                 chatmessages.map((message: any) => {
+    //                                     return (<>
+    //                                         {message.message_type === 'text' && (
+    //                                             <>
+    //                                                 <Message key={message.message_id} message={message} />
+
+    //                                             </>)
+    //                                         }
+    //                                         {message.message_type === 'unreadMessage' && (
+    //                                             <>
+    //                                                 <p id={message.notification_id} key={message.notification_id} className="mx-auto text-xs p-3 bg-zinc-900 rounded-xl">{`${numberOfUnreadMessages} unread messages`}</p>
+    //                                             </>)
+    //                                         }
+
+    //                                         {message.message_type === 'unionDate' && (
+    //                                             <>
+    //                                                 <div id={message.message_id} key={message.message_id} className="w-full flex flex-col justify-center items-center mx-auto ">
+    //                                                     <p className="mx-auto text-xs p-4 bg-zinc-900 rounded-xl">{`user ${message.username} joined the group`}</p>
+    //                                                 </div>
+    //                                             </>)
+    //                                         }
+    //                                         {message.message_type === 'emitionDate' && (
+    //                                             <>
+    //                                                 <div id={message.emition_id} key={message.emition_id} className="w-full flex flex-col justify-center items-center mx-auto   ">
+    //                                                     <p className="mx-auto text-sm p-4 bg-zinc-900 rounded-xl">{message.emition_date}</p>
+    //                                                 </div>
+    //                                             </>)
+    //                                         }
+    //                                     </>
+    //                                     )
+    //                                 })
+    //                             }</>)
+    //                             :
+    //                             (<div className="w-full h-full"></div>)
+
+
+    //                     }
+    //                     {/* este elemento es una interseccion que nos sirve para saber si el usuario se encuentra mierando los mensajes mas reciente o esta navegando por los mensajes antiguos*/}
+    //                     <div className={`${userData.chat_type === CONTACT_CHAT || userData.chat_type === GROUP_CHAT ? '' : 'hidden'} relative w-full h-[0.5px]`}>
+    //                         <div ref={recentMessagesArea} className="absolute w-full h-[190px] bottom-0 left-auto z-10"></div>
+    //                     </div>
+    //                 </div>
+    //                 {/* bg-zinc-700 */}
+    //                 <div className={`${userData.chat_type === CONTACT_CHAT || userData.chat_type === GROUP_CHAT ? '' : 'hidden'} absolute w-full h-[70px] left-0 bottom-0 z-10 flex flex-col py-[10px]  justify-center items-center bg-zinc-700 lg:relative`}>
+    //                     <div className="relative w-full h-full flex flex-row justify-center items-center">
+    //                         <div className="absolute bottom-[68px] right-3 w-28 flex flex-row justify-end items-end gap-4 z-10 md:right-20 md:bottom-[68px] ">
+    //                             {userData.chat_id ?
+    //                                 (<>
+    //                                     <div className={`${!isUserInRecentMessagesArea && numberOfUnreadMessagesForIcon ? "" : "hidden"} w-11 h-11 flex flex-col justify-center items-center bg-blue-500 rounded-full font-medium`}>{!isUserInRecentMessagesArea && numberOfUnreadMessagesForIcon ? numberOfUnreadMessagesForIcon : ''}</div>
+    //                                     <div className={`${userData.chat_id && isUserInRecentMessagesArea ? "hidden" : ""} w-14 h-14 flex flex-col justify-center items-center bg-zinc-950 rounded-full hover:bg-zinc-800`} onClick={DownToRecentMessageAreaHandler}>{(userData.chat_id && isUserInRecentMessagesArea) ? <></> : iconsForChatsPage[6].icon}</div>
+    //                                 </>)
+    //                                 :
+    //                                 (<></>)
+    //                             }
+    //                         </div>
+    //                         {/* bg-zinc-600 */}
+    //                         <form onSubmit={userData.chat_type === GROUP_CHAT ? GroupMessageSendingHandle : ContactMessageSendingHandle} className={`${userData.chat_id ? "" : "hidden"} relative h-14 w-[95%] flex flex-row justify-between items-center pr-2 bg-zinc-600 rounded-md`}>
+    //                             <input className="outline-none flex-1 bg-transparent text-xs p-3" type="text" placeholder="Type a message here" value={message} onChange={changeValueOfMessage} />
+    //                             <button className="w-9 h-10 flex flex-col justify-center items-center bg-blue-500 rounded-lg">
+    //                                 {iconsForChatsPage[2].icon}
+    //                             </button>
+    //                         </form>
+    //                     </div>
+    //                 </div>
+    //             </div>
+
+
+    //             {/* icon close */}
+    //             <div className={`${isOpenAChat || menuOpen ? "" : "hidden"} absolute w-9 h-9 flex flex-col justify-center items-center top-[16px] right-[3px] z-20 md:top-[12px] md:right-[14px] sm:top-[16px] sm:right-[20px] md:hidden`} onClick={MenuCloseHandler} >
+    //                 <div className={`relative w-7 h-8 flex flex-col justify-center items-center bg-zinc-950 rounded-xl text-white `}>
+    //                     {iconsForChatsPage[4].icon}</div>
+    //             </div>
+
+
+
+    //             {/* ************** nos falta implementar estas cards  en la vista y despues empezar con el la logica*/}
+    //             {/* card para crear o unirse a un chat grupal */}
+
+
+    //             <div className={`${isOpenCardToSelectOptions || isOpenChannelCreationCard || isOpenJoinCardToChat || isOpenAddContactCard || wasNewIvitationIdCreated || isOpenCardToLeaveToGroup ? "" : "hidden"} w-full h-screen fixed flex flex-col justify-center items-center  bg-fixed-for-add-channels z-40`} >
+
+    //                 <div className={`${isOpenCardToSelectOptions ? "" : "hidden"} relative w-[90%] h-72 flex flex-col justify-center items-center gap-5 bg-zinc-950 rounded-xl text-white sm:w-80 md:w-80 `} >
+    //                     <button onClick={OpenCardToCreateChannel} className="w-[65%] py-3 bg-blue-500 rounded-lg">Create New Channel</button>
+    //                     <button onClick={OpenCardToJoinChannel} className="w-[65%] py-3 bg-blue-500 rounded-lg">Enter to a Channel</button>
+    //                     <div className="w-7 h-1 bg-zinc-500 rounded-md " ></div>
+    //                     <button onClick={OpenCardToAddContact} className="w-[65%] py-3 bg-green-500 rounded-lg">Add New Contact</button>
+    //                     <div className="absolute w-7 h-8 flex flex-col justify-center items-center top-[9px] right-[5px] text-white z-20 " onClick={CloseCardToSelectOptions} >{iconsForChatsPage[4].icon}</div>
+    //                 </div>
+
+
+
+    //                 <div className={`${isOpenChannelCreationCard ? "" : "hidden"} relative w-[90%] h-[28.125rem] flex flex-col justify-center items-center gap-6  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
+    //                     <h3>New Channel</h3>
+    //                     <form onSubmit={HandlerCreateNewChannel} ref={formToCreateChannel} className="w-[90%] flex flex-col justify-start  items-center gap-6 md:w-[80%] ">
+    //                         <input className="outline-none w-full p-3 text-sm rounded-lg bg-zinc-700" type="text" placeholder="Channel name" id="channelName" name="channelName" />
+    //                         <input className="outline-none w-full p-3 text-sm rounded-lg bg-zinc-700" type="text" placeholder="Password Channel" id="channelPassword" name="channelPassword" />
+    //                         <textarea className="outline-none w-full h-28 resize-none p-3 text-sm rounded-lg bg-zinc-700" name="channelDescription" id="channelDescription" placeholder="Channel Description"  ></textarea>
+    //                         <input className="outline-none w-[60%] py-3 bg-blue-500 shadow-md shadow-blue-500 rounded-lg md:w-32  md:self-end" type="button"
+    //                             value="Save" onClick={HandlerCreateNewChannel} />
+    //                     </form>
+    //                     <div className="absolute w-7 h-8 flex flex-col justify-center items-center top-[9px] right-[5px] text-white z-20 " onClick={CloseCardOfCreateChannel} >{iconsForChatsPage[4].icon}</div>
+    //                 </div>
+
+
+
+    //                 <div className={`${wasNewIvitationIdCreated ? "" : "hidden"} relative w-[90%] h-52 flex flex-col justify-center items-center gap-6  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
+    //                     <h3>Invitation id</h3>
+
+    //                     <div className='w-[80%] h-14 self flex flex-row justify-between items-center bg-zinc-700 p-3 gap-5 rounded-xl' onClick={CopyInvitationId}>
+    //                         <input ref={inputOfInvitationId}
+    //                             id="invitationIdInput" type="text" className='w-full flex flex-col justify-center items-start   whitespace-nowrap overflow-hidden selection:bg-transparent bg-zinc-700  text-white outline-none caret-transparent select ' onClick={CopyInvitationId} defaultValue={invitationId} />
+
+    //                         <div onClick={CopyInvitationId} className='flex flex-col justify-center items-center w-4 h-4'>{!isInvitationIdCopied ? iconsForChatsPage[8].icon : iconsForChatsPage[9].icon}</div>
+    //                     </div>
+
+    //                     <div className="absolute w-7 h-8 flex flex-col justify-center items-center top-[9px] right-[5px] text-white z-20 " onClick={CloseCardOfInvitationIdCreated} >{iconsForChatsPage[4].icon}</div>
+
+
+    //                 </div>
+
+    //                 <div className={`${isOpenJoinCardToChat ? "" : "hidden"} relative w-[90%] h-72 flex flex-col justify-center items-center gap-8  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
+    //                     <h3>Join to a Channel</h3>
+    //                     <form onSubmit={HandlerJoinToChannel} ref={formToJoinChannel} className="w-[90%] flex flex-col justify-start  items-center gap-6 md:w-[80%]">
+    //                         <input className="outline-none w-full p-3 text-sm rounded-lg bg-zinc-700" type="text" placeholder="Insert Invitation Id" id="invitationId" name="invitationId" value={invitationId} onChange={(e) => setInvitationId(e.target.value)} />
+    //                         <input className="outline-none w-full p-3 text-sm rounded-lg bg-zinc-700" type="text" placeholder="Insert Password" id="channelPassword" name="channelPassword" />
+    //                         <input className="outline-none w-[50%] py-2 bg-blue-500 shadow-md shadow-blue-500 rounded-lg md:w-32" type="button" value="Join" readOnly onClick={HandlerJoinToChannel} />
+    //                     </form>
+    //                     <div className="absolute w-7 h-8 flex flex-col justify-center items-center top-[9px] right-[5px] text-white z-20 " onClick={CloseCardOfJoinToChannel} >{iconsForChatsPage[4].icon}</div>
+    //                 </div>
+
+    //                 <div className={`${isOpenAddContactCard ? "" : "hidden"} relative w-[90%] h-96  flex flex-col pt-16 items-center mb-20 gap-8  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
+    //                     <h3>Add New Contact</h3>
+    //                     <form onSubmit={RegisterNewContact} ref={formToCreateNewContact} className="relative w-[90%] flex flex-col justify-start  items-center gap-6 md:w-[80%]">
+    //                         <div className="w-full h-11 flex flex-row items-center gap-1 p-2 bg-zinc-600 rounded-md">
+    //                             {iconsForChatsPage[1].icon}
+    //                             <input className="w-full text-xs bg-transparent outline-none" type="text" value={searchNewContactValue} placeholder="Search" onChange={HandlerSearchNewContacts} />
+    //                         </div>
+
+    //                         {searchNewContactValue && listOfNewContactSearched.length > 0 && (<>
+    //                             <div className="absolute top-12 w-full h-max-64 flex flex-col justify-start items-center gap-3 p-3 bg-zinc-950 rounded-md">
+    //                                 <div className="w-full h-full flex flex-col justify-start items-center gap-3 p-3 overflow-scroll">
+    //                                     {
+    //                                         listOfNewContactSearched.map((contactFound): any => {
+    //                                             return <div id={contactFound.user_id} key={contactFound.user_id}
+    //                                                 className="w-full h-15 flex flex-row justify-start items-center gap-3 p-2 bg-zinc-600 rounded-md" onClick={SelectUserForToBeNewContact}>
+    //                                                 <Image loading="eager" src={contactFound.profile_picture} id={contactFound.user_id} alt="ContactProfile" width="45" height="45" className="rounded-md" onClick={SelectUserForToBeNewContact} />
+    //                                                 <p id={contactFound.user_id} onClick={SelectUserForToBeNewContact}>{contactFound.username}</p>
+    //                                             </div>
+    //                                         })
+    //                                     }
+
+    //                                 </div>
+
+    //                                 <div className="px-4 py-2 flex flex-row bg-zinc-700 gap-2 rounded-md" >
+    //                                     <div onClick={SearchContactsOnPreviousPage} className="bg-blue-600 rounded-md px-3 py-1" >{"<"}</div>
+    //                                     <span className="w-5 text-center bg-transparent">{offsetToSearchNewContacts}</span>
+    //                                     <div onClick={SearchContactsOnNextPage} className="bg-blue-600 rounded-md px-3 py-1">{">"}</div>
+    //                                 </div>
+    //                             </div>
+
+    //                         </>
+    //                         )
+    //                         }
+
+
+    //                         {searchNewContactValue && listOfNewContactSearched.length === 0 && (
+    //                             <>
+    //                                 <div className="absolute top-12 w-full h-max-64 flex flex-col justify-center items-center gap-3 p-3 bg-zinc-950 rounded-md">
+    //                                     <div className="w-full h-full flex flex-col justify-center items-center gap-3 p-3 bg-red-500 rounded-lg">
+
+    //                                         <span className="p-3 text-sm rounded-lg ">matches not found</span>
+
+    //                                     </div>
+    //                                 </div>
+    //                             </>)
+    //                         }
+
+
+    //                         {userSelectedToBeNewContact.user_id ? (
+    //                             <>
+    //                                 <h4>User Selected</h4>
+    //                                 <div className=" w-full h-15 flex flex-row justify-start items-center gap-3 p-2 bg-zinc-600 rounded-md">
+    //                                     {/* <Image src={userSelectedToBeNewContact.profile_picture} alt="ContactProfile" width="45" height="45" className="rounded-md" /> */}
+    //                                     <Image loading="eager" src={userSelectedToBeNewContact.profile_picture} alt="ContactProfile" width="45" height="45" className="rounded-md" />
+    //                                     <p>{userSelectedToBeNewContact.username}</p>
+    //                                     <div className="w-7 h-7 flex felx-col justify-center items-center ml-auto rounded-full bg-zinc-700 hover:bg-red-500" onClick={DeleteContactSelected}>
+    //                                         {iconsForChatsPage[4].icon}
+    //                                     </div>
+    //                                 </div>
+
+    //                             </>
+
+    //                         ) : (
+    //                             <></>
+    //                         )
+    //                         }
+
+
+    //                         <button className="outline-none w-[50%] py-2 bg-blue-500 shadow-md shadow-blue-500 rounded-lg md:w-32" onClick={RegisterNewContact}>Add Contact</button>
+
+
+    //                     </form>
+
+    //                     <div className="absolute w-7 h-8 flex flex-col justify-center items-center top-[9px] right-[5px] text-white z-20 " onClick={CloseCardOfAddContact} >{iconsForChatsPage[4].icon}</div>
+    //                 </div>
+
+
+    //                 <div className={`${isOpenCardToLeaveToGroup ? "" : "hidden"} relative w-[90%] h-52 flex flex-col justify-center items-center gap-6  bg-zinc-950 rounded-xl text-white md:w-[40%] xl:w-[30%]`}>
+
+    //                     <button onClick={LeaveTheGroup} className="w-[65%] py-3 bg-red-500 rounded-lg">Leave To Group</button>
+
+    //                     <div className="absolute w-7 h-8 flex flex-col justify-center items-center top-[9px] right-[5px] text-white z-20 " onClick={CloseLeaveToGroupCard} >{iconsForChatsPage[4].icon}</div>
+
+    //                 </div>
+
+
+    //             </div>
+
+    //             {/* <div className={`${isOpenCardToSelectOptions ? "" : "hidden"} w-full h-screen fixed flex flex-col justify-center items-center  bg-fixed-for-add-channels z-40`}> */}
+    //             <div className={`${isOpenCardToChangeRoleOfMember && isUserAdminToGroup ? "" : "hidden"} w-full h-screen fixed flex flex-col justify-center items-center  bg-fixed-for-add-channels z-40`}>
+
+    //                 <div className={`${isOpenCardToChangeRoleOfMember && isUserAdminToGroup ? "" : "hidden"} relative w-[90%] h-52 flex flex-col justify-center items-center gap-6  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
+
+    //                     <button onClick={DeleteMemberOfChat} className="w-[65%] py-3 bg-red-500 rounded-lg">Delete Member</button>
+
+    //                     <button onClick={ConvertMemberToAdmin} className="w-[65%] py-3 bg-blue-500 rounded-lg">Change Member To Admin</button>
+
+    //                     <div className="absolute w-7 h-8 flex flex-col justify-center items-center top-[9px] right-[5px] text-white z-20 " onClick={CloseCardOfChangeRoleOfMember} >{iconsForChatsPage[4].icon}</div>
+    //                 </div>
+
+    //             </div>
+
+
+    //             <div className={`${isOpenSettingsOfContactChat && userData.chat_type === CONTACT_CHAT ? "" : "hidden"} w-full h-screen fixed flex flex-col justify-center items-center  bg-fixed-for-add-channels z-40`}>
+
+    //                 <div className={`${isOpenSettingsOfContactChat && userData.chat_type === CONTACT_CHAT ? "" : "hidden"} relative w-[90%] h-64 flex flex-col justify-center items-center py-24 gap-6  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
+
+    //                     {/* <button onClick={DeleteMemberOfChat} className="w-[65%] py-3 bg-red-500 rounded-lg">Delete Member</button> */}
+
+    //                     <button onClick={DeleteChatHistory} className="w-[65%] py-3 bg-red-500 rounded-lg">Delete Chat History</button>
+
+    //                     <button onClick={contactData.is_blocked ? UnlockThisContact : BlockThisContact} className="w-[65%] py-3 bg-blue-500 rounded-lg">{contactData.is_blocked ? 'Unlock this Contact' : 'Block this Contact'}</button>
+
+    //                     <button onClick={DeleteThisContact} className="w-[65%] py-3 bg-blue-500 rounded-lg">Delete This Contact</button>
+
+    //                     <div className="absolute w-7 h-8 flex flex-col justify-center items-center top-[9px] right-[5px] text-white z-20 " onClick={CloseSettingsOfContactChat} >{iconsForChatsPage[4].icon}</div>
+    //                 </div>
+
+    //             </div>
+
+
+    //         </div >
+    //     </div>
+    // )
 }
 
 export default ChatsContent
