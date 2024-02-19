@@ -1,5 +1,5 @@
 import { CONTACT_CHAT, iconsForChatsPage } from '@/components/forChats/ChatsContent.data'
-import { contactBody, groupBody } from '@/components/types'
+import { contactBody, groupBody, InputEvent } from '@/components/types'
 import { updatecontactsList } from '@/redux/features/contactsListSlice'
 import { updateGroupChatList } from '@/redux/features/groupChatsListSlice'
 import { useAppDispatch, useAppSelector } from '@/redux/hooks'
@@ -16,17 +16,17 @@ const SearchBar = ({ chatType }: Props ) => {
   const [contactsListQuery, setContactsListQuery] = useState<string>('')
   const [groupsListQuery, setGroupsListQuery] = useState<string>('')
 
-  const contactsList = useAppSelector(state => state.contactsListSlice)
-  const groupChatsList = useAppSelector(state => state.groupChatsListSlice)
+  const contactsList = useAppSelector(state => state.contactsListSlice.data)
+  const groupChatsList = useAppSelector(state => state.groupChatsListSlice.data)
   
 
   const dispatch = useAppDispatch()
 
 
   
-  const FilterContactList = async (e: any) => {
+  const FilterContactList = async (e: InputEvent) => {
 
-    const inputValue: string = e.target.value
+    const inputValue = e.target.value
 
     setContactsListQuery(inputValue)
 
@@ -44,7 +44,7 @@ const SearchBar = ({ chatType }: Props ) => {
   }
 
 
-  const FilterGroupsList = async (e: any) => {
+  const FilterGroupsList = async (e: InputEvent) => {
 
     const inputValue: string = e.target.value
 

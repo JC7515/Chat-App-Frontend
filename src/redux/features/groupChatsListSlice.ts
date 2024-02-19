@@ -2,8 +2,13 @@ import { groupBody } from "@/components/types";
 import { createSlice } from "@reduxjs/toolkit";
 
 
-const initialState: groupBody[] = [
-    {
+
+interface initialStateSlice {
+   data: groupBody[]
+}
+
+const initialState: initialStateSlice = {
+    data: [{
         group: {
             group_id: '',
             chat_id: '',
@@ -14,16 +19,21 @@ const initialState: groupBody[] = [
             invitation_id: '',
             group_password: '',
             members: [],
-        }
-    }
-]
+        },
+        notifications_number: 0,
+    }]
+}
+
+
+// const initialState: groupBody[] = []
+
 
 export const groupChatsListSlice= createSlice({
     name: 'groupChatsList',
     initialState,
     reducers: {
-        updateGroupChatList: (state: any, payload) => {
-            state = payload
+        updateGroupChatList: (state, action) => {
+            state.data = action.payload
         }
     }
 })

@@ -1,32 +1,38 @@
 'use client'
 
+
 import Image from "next/image"
 import Link from "next/link"
 import { toast, useToasterStore } from "react-hot-toast"
 import { useRef, useEffect, useState } from "react"
-import { A_ADMIN_HAS_DELETED_YOU_CHAT_EVENT, A_PARTICIPANT_CHANGED_TO_ROLE_EVENT, A_PARTICIPANT_DELETED_BY_ADMIN_CHAT_EVENT, A_PARTICIPANT_JOINED_THE_CONTACT_CHAT_EVENT, A_PARTICIPANT_JOINED_THE_GROUP_CHAT_EVENT, A_PARTICIPANT_LEFT_THE_GROUP_CHAT_EVENT, A_PARTICIPANT_UNJOINED_TO_CONTACT_CHAT_EVENT, A_PARTICIPANT_UNJOINED_TO_GROUP_CHAT_EVENT, BLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT, CONTACT_CHAT, CONTACT_MESSAGE_EVENT, CONTACT_NOTIFICATION_MESSAGE_EVENT, ErrorToast, GET_USER_SOCKET_ID_EVENT, GROUP_CHAT, GROUP_MESSAGE_EVENT, GROUP_NOTIFICATION_MESSAGE_EVENT, iconsArrowForNavMenuChats, iconsForChatsPage, iconsPageLogo, infoForNavMenuChat, IS_CONTACT_IN_THE_RECENT_MESSAGES_AREA_EVENT, LoadingToast, NEW_GROUP_MEMBER_EVENT, NotificationToast, SuccessToast, UNLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT, USER_IS_ONLINE_EVENT } from "./ChatsContent.data"
-import io from 'socket.io-client'
-import { bodyMessageToBacked, bodyMessageToShowInView, bodyUserData, contactBody, groupBody, PropsForChat, PropsForGroupChat, PropsForMenuChat } from "../types"
+import { A_ADMIN_HAS_DELETED_YOU_CHAT_EVENT, A_PARTICIPANT_CHANGED_TO_ROLE_EVENT, A_PARTICIPANT_DELETED_BY_ADMIN_CHAT_EVENT, A_PARTICIPANT_JOINED_THE_CONTACT_CHAT_EVENT, A_PARTICIPANT_JOINED_THE_GROUP_CHAT_EVENT, A_PARTICIPANT_LEFT_THE_GROUP_CHAT_EVENT, A_PARTICIPANT_UNJOINED_TO_CONTACT_CHAT_EVENT, A_PARTICIPANT_UNJOINED_TO_GROUP_CHAT_EVENT, BLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT, chatMessages, CONTACT_CHAT, CONTACT_MESSAGE_EVENT, CONTACT_NOTIFICATION_MESSAGE_EVENT, ErrorToast, GET_USER_SOCKET_ID_EVENT, GROUP_CHAT, GROUP_MESSAGE_EVENT, GROUP_NOTIFICATION_MESSAGE_EVENT, iconsForChatsPage, iconsPageLogo, infoForNavMenuChat, IS_CONTACT_IN_THE_RECENT_MESSAGES_AREA_EVENT, LoadingToast, NEW_GROUP_MEMBER_EVENT, NotificationToast, SuccessToast, UNLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT, USER_IS_ONLINE_EVENT } from "./ChatsContent.data"
+import io, { Socket } from "socket.io-client";
+import { AParticipantChagedToRoleChatProps, AParticipantIsJoinedToContactChatProps, AParticipantIsJoinedToGroupChatProps, AParticipantIsUnjoinedToContactChatProps, AParticipantIsUnjoinedToGroupChatProps, AParticipantLeftTheGroupToChatProps, AParticipantWasDeletedByAdminToChatProps, bodyMessageToBacked, bodyMessageToShowInView, bodyUserData, ChatMessages, chatParticipantBody, ContactBlockingForNotKnowingTheUserProps, contactBody, ContactIsInTheRecentMesssagesAreaProps, ContactMessageEventFuncProps, ContactNotificationMessageRecivedProps, ContactUnlockUserProps, EventTypes, FormEvent, groupBody, GroupMessageEventFuncProps, GroupNotificationMessageRecivedProps, HandlerOfUserSocketIdUpdatedPayload, InputEvent, listChatMessagesUnreaded, memberBody, messageIssueDateBody, messagesBodyFromBackend, NewMemberGroupFuncProps, notificationBody, notificationBodyInChatMessages, obtainedChatParticipantsObjectBody, PropsForChat, PropsForCommandWindows, PropsForGroupChat, PropsForMenuChat } from "../types"
 import Message from "./subComponents/message/Message"
 import { v4 as uuidv4 } from 'uuid'
-import { ConvertDateToDayFormat, ConvertDateToHourFormat, GetCookieValue, GetCurrentDateString, TransformDateToCorrectFormatString, TransformDateToEmitionDate } from "@/helpers"
+import { AddNotificationsToContactList, AddNotificationsToGroupList, AddStatusToTheDataOfEachGroupMember, ConvertBackendMessageBodyToViewableMessages, ConvertDateToDayFormat, ConvertDateToHourFormat, FilterUserAndContactsFromContactSearchList, GenerateMessageObjectToBackend, GenerateMessageObjectToNotification, GenerateMessageObjectToView, GetContactDetailsFromContactList, GetCookieValue, GetCurrentDateString, GetListOfMembersWithUpdatedMemberRole, GetListOfMembersWithUpdatedStatuses, GetListOfMessagesWithIssueDate, GetListOfOldMessagesWithIssueDate, GetMemberListWithoutRecentlyRemovedMember, ObtainContactListWithUpdatedNotificationNumber, ObtainGroupListWithUpdatedNotificationNumber, TransformDateToCorrectFormatString, TransformDateToEmitionDate, UpdateContactList, UpdateGroupList, UpdatePromotedMemberRoleToAdmin, ValidateIfTheMemberIsAnAdministrator, ValidateIfTheUserIsAnAdministrator, ValidateIfUserExistsInGroup } from "@/helpers"
 import { ACCESS_TOKEN_NAME } from "../forLogin/authCard/AuthCard.data"
 import { useRouter } from "next/navigation"
-import { ChangeMemberToAdmin, CreateBlockContact, CreateNewContact, CreateNewContactChatNotification, CreateNewGroupChatNotification, DeleteAllNotifications, DeleteContact, DeleteContactChatHistory, DeleteMemberOfGroup, GetAllChatParticipantsOfGroup, GetAllContacts, GetAllGroupChats, GetAllMembersOfGroup, GetAllMessagesFromAContactChat, GetAllMessagesFromAGroupChat, GetAllNotificationsOfUser, GetContactChatData, GetlistOfUserByUsername, GetUserDataValidated, PermanentlyDeleteGroup, UpdateMessageData, UpdateStatusOfChatParticipant } from "@/utils"
+import { AddANewMemberToAGroup, ChangeMemberToAdmin, CreateBlockContact, CreateNewContact, CreateNewContactChatNotification, CreateNewGroup, CreateNewGroupChatNotification, DeleteAllNotifications, DeleteContact, DeleteContactChatHistory, DeleteMemberOfGroup, GetAllChatParticipantsOfGroup, GetAllContacts, GetAllGroupChats, GetAllMembersOfGroup, GetAllMessagesFromAContactChat, GetAllMessagesFromAGroupChat, GetAllNotificationsOfUser, GetContactChatData, GetlistOfUserByUsername, GetUserDataValidated, PermanentlyDeleteGroup, UpdateMessageData, UpdateStatusOfChatParticipant, ValidateMembersOfGroup } from "@/utils"
 import lockImage from '../../../public/lockImage.png'
 import logoForMessageArea from '../../../public/logo-for-message-area.png'
 import { GetUserData } from "@/helpers"
 import MenuChat from "./subComponents/menusChats/menuChat/MenuChat"
 import GroupMenuChat from "./subComponents/menusChats/groupMenuChat/GroupMenuChat"
 import Chat from "./subComponents/chat/Chat"
+import { useAppDispatch, useAppSelector } from "@/redux/hooks"
+import { updatecontactsList } from "@/redux/features/contactsListSlice"
+import { updateGroupChatList } from "@/redux/features/groupChatsListSlice"
+import Commandwindows from "./commandwindows/Commandwindows"
+import { updateContactData } from "@/redux/features/contactData"
+import { updateGroupData } from "@/redux/features/groupData"
+import { updateUserData } from "@/redux/features/userDataSlice"
+import { type } from "os"
 
 const socket = io(`${process.env.NEXT_PUBLIC_API_URL_DEV}`, { autoConnect: false })
 
 
 const ChatsContent = () => {
-
-    // const userDataApp = useAppSelector(state => state.userDataSlice.userData)
-    // const dispatch = useAppDispatch()
 
     const userDataBody: bodyUserData = {
         user_id: '',
@@ -57,9 +63,9 @@ const ChatsContent = () => {
     const { toasts } = useToasterStore()
 
 
-    const formToJoinChannel: any = useRef()
+    const formToJoinChannel = useRef<HTMLFormElement>(null);
     const formToCreateChannel = useRef<HTMLFormElement>(null);
-    const formToCreateNewContact: any = useRef()
+    const formToCreateNewContact = useRef<HTMLFormElement>(null);
     const messagesContainer = useRef<HTMLDivElement>(null);
     const recentMessagesArea = useRef<HTMLDivElement>(null)
     const getOldMessagesArea = useRef<HTMLDivElement>(null);
@@ -76,7 +82,7 @@ const ChatsContent = () => {
     const [isOpenAddContactCard, setIsOpenAddContactCard] = useState(false)
     const [isOpenCardToSelectOptions, setIsOpenCardToSelectOptions] = useState(false)
 
-    const [isOpenCardToChangeRoleOfMember, setIsOpenCardToChangeRoleOfMember] = useState(false)
+    const [isOpenCardToChangeRoleOfMember, setIsOpenCardToChangeRoleOfMember] = useState<boolean>(false)
 
     const [isOpenCardToLeaveToGroup, setIsOpenCardToLeaveToGroup] = useState<boolean>(false)
 
@@ -88,8 +94,8 @@ const ChatsContent = () => {
 
 
     const [numberOfMembers, setNumberOfMembers] = useState(0)
-    const [listOfNewContactSearched, setListOfNewContactSearched] = useState([userFound])
-    const [searchNewContactValue, setSearchNewContactValue] = useState('')
+    const [listOfNewContactSearched, setListOfNewContactSearched] = useState<bodyUserData[]>([userFound])
+    const [searchNewContactValue, setSearchNewContactValue] = useState<string>('')
 
     const [userSelectedToBeNewContact, setUserSelectedToBeNewContact] = useState(userFound)
 
@@ -110,11 +116,11 @@ const ChatsContent = () => {
         username: ''
     }
 
-    const [chatmessages, setChatMessages] = useState<any>([])
+    const [chatmessages, setChatMessages] = useState<ChatMessages>([])
     const [message, setMessage] = useState('')
 
-    const [userData, setUserData] = useState<bodyUserData>(userDataBody)
-    const [invitationId, setInvitationId] = useState('')
+    // const [userData, setUserData] = useState<bodyUserData>(userDataBody)
+    const [invitationId, setInvitationId] = useState<string>('')
     const [isInvitationIdCopied, setIsInvitationIdCopied] = useState<boolean>(false)
 
 
@@ -145,10 +151,14 @@ const ChatsContent = () => {
 
     const [isUserSocketIDUpdated, setIsUserSocketIDUpdated] = useState(false);
 
-    const [isUserAdminToGroup, setIsUserAdminToGroup] = useState(false);
+    const [isUserAdminToGroup, setIsUserAdminToGroup] = useState<boolean>(false);
 
-    const [offsetToSearchNewContacts, setOffsetToSearchNewContacts] = useState(0);
-    const [limitOfNewContactsPerPage, setLimitOfNewContactsPerPage] = useState(20);
+    const [offsetToSearchNewContacts, setOffsetToSearchNewContacts] = useState<number>(0);
+    const [limitOfNewContactsPerPage, setLimitOfNewContactsPerPage] = useState<number>(20);
+
+
+    const [lastParticipantEliminatedFromTheGroup, setLastParticipantEliminatedFromTheGroup] = useState<boolean>(false);
+
 
 
 
@@ -171,10 +181,9 @@ const ChatsContent = () => {
     }
 
 
-
     const contactBody = {
         contact_id: '',
-        user_id: undefined,
+        user_id: '',
         contact_user: {
             user_id: undefined,
             socket_id: undefined,
@@ -184,22 +193,23 @@ const ChatsContent = () => {
             status: undefined,
             contact_blocked_you: undefined
         },
-        chat_id: undefined,
+        chat_id: '',
         is_blocked: undefined,
         is_contact_validated: true,
         creation_date: undefined,
         notifications_number: undefined,
     }
 
-    const [contactsList, setContactsList] = useState<contactBody[]>([])
-    const [groupChatsList, setGroupChatsList] = useState([groupBody])
+
+    // const [contactsList, dispatch] = useState<contactBody[]>([])
+    // const [groupChatsList, dispatch] = useState([groupBody])
 
     const [groupsListQuery, setGroupsListQuery] = useState<any>('')
     const [contactsListQuery, setContactsListQuery] = useState<any>('')
 
 
-    const [groupData, setGroupData] = useState<any>(groupBody.group)
-    const [contactData, setContactData] = useState<any>(contactBody)
+    // const [groupData, setGroupData] = useState<any>(groupBody.group)
+    // const [contactData, setContactData] = useState<contactBody>(contactBody)
 
 
     const [isUserInNewChat, setIsUserInNewChat] = useState<any>(false)
@@ -207,7 +217,16 @@ const ChatsContent = () => {
     const [loaderWaitingTime, setloaderWaitingTime] = useState<any>(false)
 
 
-    
+    const contactsList = useAppSelector(state => state.contactsListSlice.data)
+    const groupData = useAppSelector(state => state.groupDataSlice.data)
+
+    const contactData = useAppSelector(state => state.contactDataSlice.data)
+    const groupChatsList = useAppSelector(state => state.groupChatsListSlice.data)
+
+    const userData: bodyUserData = useAppSelector(state => state.userDataSlice.data)
+
+
+    const dispatch = useAppDispatch()
 
 
 
@@ -223,7 +242,7 @@ const ChatsContent = () => {
 
     // chat login funcions
 
-    const GroupMessageSendingHandle = (e: any): void => {
+    const GroupMessageSendingHandle = (e: FormEvent): void => {
         e.preventDefault()
 
         if (!message) return
@@ -249,28 +268,31 @@ const ChatsContent = () => {
 
         const isMessageRead = isContactInRecentMessagesArea ? true : false
 
-        // aqui si el mensajes es leido al momentos por el contacto se otorgora la fechat actual para el campo read_timestamp, pero si no se otorgara una fecha zero
+        // aqui si el mensajes es leido al momento por el contacto se otorgara la fecha actual para el campo read_timestamp, pero si no se otorgara una fecha zero, para hacer referencia a fechas anteriores a la actual
         const readTimestamp = isMessageRead ? creationDateOfMessageForBackend : dateZeroForReadTimestamp
 
 
-        // esta es la estructura que se va a mandar al componente para ser guardada en la db
-        const messageObjectToBackend: bodyMessageToBacked = {
-            message_id: messageId,
-            chat_id: userData.chat_id,
-            group_id: groupData.group_id,
-            user_id: userData.user_id,
-            message_content: message,
-            timestamp: creationDateOfMessageForBackend, //aqui necesitamos crea una funcion para que nos envie el time stamp con minutos segundo y milisegundo
-            is_read: isMessageRead,
-            read_timestamp: readTimestamp, ////aqui necesitamos crea una funcion para que nos envie el time stamp con minutos segundo y milisegundo
-            message_type: messageType,
-            username: userData.username,
-            profile_picture: userData.profile_picture,
-            chat_type: 'group',
-            is_current_user_messsage: false
-        }
 
-        // aqui comprobamos que la propiedad de chat_type tenga el dato group o contact, y si no lo tiene salimos del flujo para no ejecutar los eventos sockets
+        // esta es la estructura que se va a mandar al componente para ser guardada en la db
+        const messageObjectToBackend = GenerateMessageObjectToBackend(messageId, userData, groupData, message, creationDateOfMessageForBackend, isMessageRead, readTimestamp, messageType, 'group')
+
+        // const messageObjectToBackend: bodyMessageToBacked = {
+        //     message_id: messageId,
+        //     chat_id: userData.chat_id,
+        //     group_id: groupData.group_id,
+        //     user_id: userData.user_id,
+        //     message_content: message,
+        //     timestamp: creationDateOfMessageForBackend, //aqui necesitamos crea una funcion para que nos envie el time stamp con minutos segundo y milisegundo
+        //     is_read: isMessageRead,
+        //     read_timestamp: readTimestamp, ////aqui necesitamos crea una funcion para que nos envie el time stamp con minutos segundo y milisegundo
+        //     message_type: messageType,
+        //     username: userData.username,
+        //     profile_picture: userData.profile_picture,
+        //     chat_type: 'group',
+        //     is_current_user_messsage: false
+        // }
+
+        // aqui comprobamos que la propiedad de chat_type tenga el dato group o contact, y si no lo tiene salimos del flujo para no ejecutar los eventos sockets que envia el mensaje al backend y ejecuta la logica restante
         if (!userData.chat_type) return
 
 
@@ -282,22 +304,26 @@ const ChatsContent = () => {
 
             // aqui emitimos la notificacion para todos los usuario del grupo, ya que en la funcion NotificationMessageRecived se estara haciendo el filtrado de los uaurios, si se muestran las notificaciones con un toast o solo aparecen como un signo de mensajes no leidos  
             if (member.status === 'inactive') {
-                const notificationData = {
-                    socketId: member.user.socket_id,
-                    messageId: messageId,
-                    userId: member.user.user_id,
-                    chatId: userData.chat_id,
-                    creatorProfilePicture: userData.profile_picture,
-                    creatorUserId: userData.user_id,
-                    creatorUserName: userData.username,
-                    groupId: member.group_id,
-                    type: 'text',
-                    chatType: 'group',
-                    message: message,
-                    status: 'unread'
-                }
+                // const notificationData = {
+                //     socketId: member.user.socket_id,
+                //     messageId: messageId,
+                //     userId: member.user.user_id,
+                //     chatId: userData.chat_id,
+                //     creatorProfilePicture: userData.profile_picture,
+                //     creatorUserId: userData.user_id,
+                //     creatorUserName: userData.username,
+                //     groupId: member.group_id,
+                //     type: 'text',
+                //     chatType: 'group',
+                //     message: message,
+                //     status: 'unread'
+                // }
+
+                const notificationData = GenerateMessageObjectToNotification(contactData, messageId, userData, 'text', 'group', message, member)
+
                 socket.emit(GROUP_NOTIFICATION_MESSAGE_EVENT, notificationData)
             }
+
         })
 
 
@@ -306,22 +332,24 @@ const ChatsContent = () => {
         }
 
 
-        // este object es la estrutura que acepta el componente y que debe ir en el arr de chat
-        const messageObjectToView: bodyMessageToShowInView = {
-            message_id: messageId,
-            chat_id: userData.chat_id,
-            user_id: userData.user_id,
-            username: userData.username,
-            timestamp: creationDateOfMessage,
-            date: creationDayOfMessage,
-            hour: creationHourOfMessage,
-            message_content: message,
-            profile_picture: userData.profile_picture,
-            message_type: 'text',
-            is_current_user_messsage: true,
-            is_read: isMessageRead,
-        }
+        // este object es la estrutura que acepta el componente y que debe ir en el array de mensajes de chat para la vista
+        // const messageObjectToView: bodyMessageToShowInView = {
+        //     message_id: messageId,
+        //     chat_id: userData.chat_id,
+        //     user_id: userData.user_id,
+        //     username: userData.username,
+        //     timestamp: creationDateOfMessage,
+        //     date: creationDayOfMessage,
+        //     hour: creationHourOfMessage,
+        //     message_content: message,
+        //     profile_picture: userData.profile_picture,
+        //     message_type: 'text',
+        //     is_current_user_messsage: true,
+        //     is_read: isMessageRead,
+        // }
 
+
+        const messageObjectToView = GenerateMessageObjectToView(messageId, userData, creationDateOfMessage, creationDayOfMessage, creationHourOfMessage, message, 'text', isMessageRead)
 
 
         setChatMessages([...chatmessages, messageObjectToView])
@@ -331,7 +359,7 @@ const ChatsContent = () => {
     }
 
 
-    const ContactMessageSendingHandle = (e: any) => {
+    const ContactMessageSendingHandle = (e: FormEvent) => {
         e.preventDefault()
 
         if (!message) return
@@ -362,20 +390,24 @@ const ChatsContent = () => {
         const readTimestamp = isMessageRead ? creationDateOfMessageForBackend : dateZeroForReadTimestamp
 
         // esta es la estructura que se va a mandar al componente para ser guardada en la db
-        const messageObjectToBackend: bodyMessageToBacked = {
-            message_id: messageId,
-            chat_id: userData.chat_id,
-            user_id: userData.user_id,
-            message_content: message,
-            timestamp: creationDateOfMessageForBackend, //aqui necesitamos crea una funcion para que nos envie el time stamp con minutos segundo y milisegundo
-            is_read: isMessageRead,
-            read_timestamp: readTimestamp, ////aqui necesitamos crea una funcion para que nos envie el time stamp con minutos segundo y milisegundo
-            message_type: messageType,
-            username: userData.username,
-            profile_picture: userData.profile_picture,
-            chat_type: 'contact',
-            is_current_user_messsage: false
-        }
+
+        const messageObjectToBackend = GenerateMessageObjectToBackend(messageId, userData, groupData, message, creationDateOfMessageForBackend, isMessageRead, readTimestamp, messageType, 'contact')
+
+
+        // const messageObjectToBackend: bodyMessageToBacked = {
+        //     message_id: messageId,
+        //     chat_id: userData.chat_id,
+        //     user_id: userData.user_id,
+        //     message_content: message,
+        //     timestamp: creationDateOfMessageForBackend, //aqui necesitamos crea una funcion para que nos envie el time stamp con minutos segundo y milisegundo
+        //     is_read: isMessageRead,
+        //     read_timestamp: readTimestamp, ////aqui necesitamos crea una funcion para que nos envie el time stamp con minutos segundo y milisegundo
+        //     message_type: messageType,
+        //     username: userData.username,
+        //     profile_picture: userData.profile_picture,
+        //     chat_type: 'contact',
+        //     is_current_user_messsage: false
+        // }
 
         // aqui comprobamos que la propiedad de chat_type tenga el dato group o contact, y si no lo tiene salimos del flujo para no ejecutar los eventos sockets
         if (!userData.chat_type) return
@@ -388,19 +420,21 @@ const ChatsContent = () => {
 
         // aqui emitimos la notificacion para el contacto del usuario actual, ya que en la funcion NotificationMessageRecived se estara haciendo el filtrado de los usurios, si se muestran las notificaciones con un toast o solo aparecen como un signo de mensajes no leidos y solo se estaran enviando si el usuario no ah bloqueado al contacto o el contacto al usuario  
         if (contactData.contact_user.status === 'inactive' && !contactData.is_blocked && !contactData.contact_user.contact_blocked_you) {
-            const notificationData = {
-                socketId: contactData.contact_user.socket_id,
-                messageId: messageId,
-                userId: contactData.contact_user.user_id,
-                chatId: userData.chat_id,
-                creatorProfilePicture: userData.profile_picture,
-                creatorUserId: userData.user_id,
-                creatorUserName: userData.username,
-                type: 'text',
-                chatType: 'contact',
-                message: message,
-                status: 'unread'
-            }
+            // const notificationData = {
+            //     socketId: contactData.contact_user.socket_id,
+            //     messageId: messageId,
+            //     userId: contactData.contact_user.user_id,
+            //     chatId: userData.chat_id,
+            //     creatorProfilePicture: userData.profile_picture,
+            //     creatorUserId: userData.user_id,
+            //     creatorUserName: userData.username,
+            //     type: 'text',
+            //     chatType: 'contact',
+            //     message: message,
+            //     status: 'unread'
+            // }
+
+            const notificationData = GenerateMessageObjectToNotification(contactData, messageId, userData, 'text', 'contact', message)
 
             socket.emit(CONTACT_NOTIFICATION_MESSAGE_EVENT, notificationData)
 
@@ -414,21 +448,22 @@ const ChatsContent = () => {
 
 
         // este object es la estrutura que acepta el componente y que debe ir en el arr de chat
-        const messageObjectToView: bodyMessageToShowInView = {
-            message_id: messageId,
-            chat_id: userData.chat_id,
-            user_id: userData.user_id,
-            username: userData.username,
-            timestamp: creationDateOfMessage,
-            date: creationDayOfMessage,
-            hour: creationHourOfMessage,
-            message_content: message,
-            profile_picture: userData.profile_picture,
-            message_type: 'text',
-            is_read: isMessageRead,
-            is_current_user_messsage: true
-        }
+        // const messageObjectToView: bodyMessageToShowInView = {
+        //     message_id: messageId,
+        //     chat_id: userData.chat_id,
+        //     user_id: userData.user_id,
+        //     username: userData.username,
+        //     timestamp: creationDateOfMessage,
+        //     date: creationDayOfMessage,
+        //     hour: creationHourOfMessage,
+        //     message_content: message,
+        //     profile_picture: userData.profile_picture,
+        //     message_type: 'text',
+        //     is_read: isMessageRead,
+        //     is_current_user_messsage: true
+        // }
 
+        const messageObjectToView = GenerateMessageObjectToView(messageId, userData, creationDateOfMessage, creationDayOfMessage, creationHourOfMessage, message, 'text', isMessageRead)
 
         setChatMessages([...chatmessages, messageObjectToView])
         setMessage('')
@@ -438,22 +473,15 @@ const ChatsContent = () => {
     }
 
 
-    const HandlerCreateNewChannel = async (e: any) => {
+    const HandlerCreateNewChannel = async (e: FormEvent) => {
 
         try {
             e.preventDefault()
 
             if (!formToCreateChannel.current) return
 
-            // aqui notificacion que indica al usuario que la accion se esta procesando
-            const loadingToast = LoadingToast('Creating Group', "top-center")
-
-            const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
-
-            console.log(userData)
-
-
             const formData = new FormData(formToCreateChannel.current)
+
             const payload = {
                 name: formData.get('channelName'),
                 description: formData.get('channelDescription'),
@@ -461,27 +489,17 @@ const ChatsContent = () => {
                 group_password: formData.get('channelPassword'),
             }
 
-            console.log(payload)
+            // aqui validamos que el usuario ponga obligatoriamente un nombre y descripcion para el nuevo grupo
+            if (!payload.name) throw { error: 'name field is required' }
 
-            const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/groups`
-
-            const resp = await fetch(url, {
-                method: 'POST',
-                body: JSON.stringify(payload),
-                headers: {
-                    'authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                }
-            })
+            if (!payload.description) throw { error: 'description field is required' }
 
 
+            // aqui notificacion que indica al usuario que la accion se esta procesando
+            const loadingToast = LoadingToast('Creating Group', "top-center")
 
-            const data = await resp.json()
-
-            if (data.data.status === "FAILED") {
-                // si falla la peticion devolveremos el valor de data.data que ese error.message
-                throw data.data.error // { error: { message: 'error...'} }
-            }
+            //aqui creamos un nuevo grupo en la base de datos 
+            const newGroupCreated = await CreateNewGroup(payload)
 
             // aqui retrasamos por un segundo la eliminacion del loading toast, para que no desaparesca tan rapido en la vista
             await new Promise((resolve) => setTimeout(() => { resolve('') }, 1000))
@@ -494,14 +512,12 @@ const ChatsContent = () => {
 
 
             // aqui procedemos a mostrar la card de id de invitacion en la vista 
-            setInvitationId(data.data.invitation_id)
+            setInvitationId(newGroupCreated.invitation_id)
             setWasNewIvitationIdCreated(true)
 
 
             // aqui obtenemos el nuevo array de grupos incluido el que el usuario creo recientemente y lo mostramos en la vista
-            const groupsObtained: any = await GetAllGroupChats()
-
-            setGroupChatsList(groupsObtained)
+            await UpdateGroupList(dispatch)
 
             // aqui notificacion que indica al usuario que la accion se realizo con exito
             SuccessToast('New Group Created', "top-center")
@@ -518,14 +534,12 @@ const ChatsContent = () => {
     }
 
 
-    const HandlerJoinToChannel = async (e: any) => {
+    const HandlerJoinToChannel = async (e: FormEvent) => {
         try {
             e.preventDefault()
 
-            // aqui notificacion que indica al usuario que la accion se esta procesando
-            const loadingToast = LoadingToast('Joining To Group', "top-center")
+            if (!formToJoinChannel.current) return
 
-            const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
             const formData = new FormData(formToJoinChannel.current)
 
@@ -534,23 +548,15 @@ const ChatsContent = () => {
                 group_password: formData.get('channelPassword'),
             }
 
-            const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/members`
+            if (!payload.invitation_id) throw { error: 'invitation id field is required' }
 
-            const resp = await fetch(url, {
-                method: 'POST',
-                body: JSON.stringify(payload),
-                headers: {
-                    'authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                }
-            })
 
-            const data = await resp.json()
+            // aqui notificacion que indica al usuario que la accion se esta procesando
+            const loadingToast = LoadingToast('Joining To Group', "top-center")
 
-            if (data.data.status === "FAILED") {
-                // si falla la peticion devolveremos el valor de data.data que ese error.message
-                throw data.data.error // { error: { message: 'error...'} }
-            }
+
+            //aqui creamos un nuevo grupo en la base de datos 
+            const newMemberAdded = await AddANewMemberToAGroup(payload)
 
 
             // aqui retrasamos por un segundo la eliminacion del loading toast, para que no desaparesca tan rapido en la vista
@@ -568,9 +574,9 @@ const ChatsContent = () => {
 
 
             // aqui procedemos a emitir un evento de tipo NEW_GROUP_MEMBER_EVENT para que ah todos los usuario que esten conectados a grupo en ese mismo momento les aparesca que el nuevo usuario se a unido al grupo
-            const dataForEmit = {
-                group_id: data.data.group_id,
-                chat_id: data.data.chat_id,
+            const dataForEmit: any = {
+                group_id: newMemberAdded.group_id,
+                chat_id: newMemberAdded.chat_id,
                 user_id: userData.user_id
             }
 
@@ -579,9 +585,8 @@ const ChatsContent = () => {
             console.log('se emition el evento NEW_GROUP_MEMBER_EVENT del socket')
 
             // aqui obtenemos el nuevo array de grupos incluido al que el usuario se unio recientemente y lo mostramos en la vista
-            const groupsObtained: any = await GetAllGroupChats()
+            await UpdateGroupList(dispatch)
 
-            setGroupChatsList(groupsObtained)
 
             // si todo salio bien la peticion nos deberia devolver un status OK sin ninguna data incluida
             // console.log(data.status) 
@@ -599,13 +604,15 @@ const ChatsContent = () => {
         }
     }
 
+
+
     const HandlerDeleteMenber = () => {
         //  aqui funcionabilidad para eliminar a un miembro
     }
 
 
 
-    const HandlerSearchNewContacts = async (e: any) => {
+    const HandlerSearchNewContacts = async (e: InputEvent) => {
         try {
             const valueOfSearchBar = e.target.value
 
@@ -613,31 +620,34 @@ const ChatsContent = () => {
 
             const offset = offsetToSearchNewContacts * limitOfNewContactsPerPage
 
-            const usersObtained: any = await GetlistOfUserByUsername(valueOfSearchBar, offset, limitOfNewContactsPerPage)
+            const usersObtained = await GetlistOfUserByUsername(valueOfSearchBar, offset, limitOfNewContactsPerPage)
 
-            // aqui adaptando la data de el usuario para que se compatible con los demas objetos que estan en el array usersToSkip y que vienen de contactsList 
-            const userDataToSkip = {
-                contact_user: userData,
-            }
+            // // aqui adaptando la data de el usuario para que se compatible con los demas objetos que estan en el array usersToSkip y que vienen de contactsList 
+            // const userDataToSkip = {
+            //     contact_user: userData,
+            // }
 
-            //aqui creamos un array con todos los contactos con los que ya cuenta este usuario, asi cuando se haga la busqueda no le aparesca usuario que ya tiene como contacto, ni tampoco su propia cuentra, algo asi como una blacklist  
-            const usersToSkip = [...contactsList, userDataToSkip]
+            // //aqui creamos un array con todos los contactos con los que ya cuenta este usuario, asi cuando se haga la busqueda no le aparesca usuario que ya tiene como contacto, ni tampoco su propia cuentra, algo asi como una blacklist  
+            // const usersToSkip = [...contactsList, userDataToSkip]
 
-            // aqui filtramos todos los usuario que nos tenga el mismo nombre que usuario actual del array usersToSkip, para evitar que el usuario pueda seleccionar como nuevo contacto a su propia cuenta o le otros cuentas que ya tiene como contactos
+            // // aqui filtramos todos los usuario que nos tenga el mismo nombre que usuario actual del array usersToSkip, para evitar que el usuario pueda seleccionar como nuevo contacto a su propia cuenta o le otros cuentas que ya tiene como contactos
 
-            const listOfUsersFiltered: any = []
+            // const listOfUsersFiltered: bodyUserData[] = []
 
-            usersObtained.forEach((userObtained: any) => {
+            // usersObtained.forEach((userObtained) => {
 
-                const userFounded = usersToSkip.find((user: any) => user.contact_user.username === userObtained.username)
+            //     const userFounded = usersToSkip.find((user: any) => user.contact_user.username === userObtained.username)
 
-                if (userFounded) {
-                    return
-                }
+            //     if (userFounded) {
+            //         return
+            //     }
 
-                listOfUsersFiltered.push(userObtained)
+            //     listOfUsersFiltered.push(userObtained)
 
-            })
+            // })
+
+            // aqui obtenemos la lista de contacto buscados, pero filtrados la cuenta del usuario y todos sus contactos ya agregados para evitar que puede agregarse a si mismo a sus contactos ya existentes
+            const listOfUsersFiltered = FilterUserAndContactsFromContactSearchList(userData, contactsList, usersObtained)
 
             console.log(listOfUsersFiltered)
 
@@ -653,10 +663,10 @@ const ChatsContent = () => {
         }
     }
 
-    const SelectUserForToBeNewContact = (e: any) => {
+    const SelectUserForToBeNewContact = (e: InputEvent) => {
         const userSelectedId = e.target.id
         // listOfNewContactSearched.filter((user) => user.user_id =  userSelectedId )
-        const userObtained: any = listOfNewContactSearched.filter((user) => user.user_id === userSelectedId)
+        const userObtained = listOfNewContactSearched.filter((user) => user.user_id === userSelectedId)
 
         console.log(userObtained)
         if (userObtained) {
@@ -668,7 +678,7 @@ const ChatsContent = () => {
     }
 
 
-    const RegisterNewContact = async (e: any) => {
+    const RegisterNewContact = async (e: FormEvent) => {
         try {
             e.preventDefault()
 
@@ -678,11 +688,7 @@ const ChatsContent = () => {
             await CreateNewContact(contactUserId)
 
             // aqui estamos obteniendo la nuevas lista de contactos actualizados 
-            const AllContactsObtained = await GetAllContacts()
-
-            console.log(AllContactsObtained)
-
-            setContactsList(AllContactsObtained)
+            await UpdateContactList(dispatch)
 
             CloseCardOfAddContact()
 
@@ -713,6 +719,9 @@ const ChatsContent = () => {
     }
 
     const OpenCardToJoinChannel = () => {
+
+        if (!formToJoinChannel.current) return
+
         // aqui reseteamos los valores de todos lo inputs del fomulario cada que salgamos de la card
         formToJoinChannel.current.reset()
         setInvitationId('')
@@ -721,6 +730,7 @@ const ChatsContent = () => {
         setIsOpenCardToSelectOptions(false)
 
     }
+
     const OpenCardToCreateChannel = () => {
         // aqui lo que hacemos es resetear todos los valores de lo inputs y textarea que se encuentran dentro del formulario para crear un nuevo channel
         if (formToCreateChannel.current) {
@@ -736,10 +746,10 @@ const ChatsContent = () => {
         setIsOpenCardToSelectOptions(false)
     }
 
-    const OpenCardOfChangeRoleOfMember = (e: any) => {
-        const memberSelected = e.target.id
+    const OpenCardOfChangeRoleOfMember = (e: EventTypes) => {
+        const memberSelected = e.currentTarget.id
 
-        const isAdminSelectMemberToGroup = groupData.members.find((member: any) => member.user.user_id === memberSelected && member.role === 'member')
+        const isAdminSelectMemberToGroup = groupData.members.find((member) => member.user.user_id === memberSelected && member.role === 'member')
 
         if (isAdminSelectMemberToGroup) {
             setIsOpenCardToChangeRoleOfMember(true)
@@ -799,31 +809,10 @@ const ChatsContent = () => {
 
         const offset = newValue * limitOfNewContactsPerPage
 
-        const usersObtained: any = await GetlistOfUserByUsername(searchNewContactValue, offset, limitOfNewContactsPerPage)
+        const usersObtained = await GetlistOfUserByUsername(searchNewContactValue, offset, limitOfNewContactsPerPage)
 
-        // aqui adaptando la data de el usuario para que se compatible con los demas objetos que estan en el array usersToSkip y que vienen de contactsList 
-        const userDataToSkip = {
-            contact_user: userData,
-        }
-
-        //aqui creamos un array con todos los contactos con los que ya cuenta este usuario, asi cuando se haga la busqueda no le aparesca usuario que ya tiene como contacto, ni tampoco su propia cuentra, algo asi como una blacklist  
-        const usersToSkip = [...contactsList, userDataToSkip]
-
-        // aqui filtramos todos los usuario que nos tenga el mismo nombre que usuario actual del array usersToSkip, para evitar que el usuario pueda seleccionar como nuevo contacto a su propia cuenta o le otros cuentas que ya tiene como contactos
-
-        const listOfUsersFiltered: any = []
-
-        usersObtained.forEach((userObtained: any) => {
-
-            const userFounded = usersToSkip.find((user: any) => user.contact_user.username === userObtained.username)
-
-            if (userFounded) {
-                return
-            }
-
-            listOfUsersFiltered.push(userObtained)
-
-        })
+        // aqui obtenemos la lista de contacto buscados, pero filtrados la cuenta del usuario y todos sus contactos ya agregados para evitar que puede agregarse a si mismo a sus contactos ya existentes
+        const listOfUsersFiltered = FilterUserAndContactsFromContactSearchList(userData, contactsList, usersObtained)
 
         // aqui estamos validando que en la siguiente pagina haya elementos, ya que si no las ahi, queremos que el usuario ya no puedo seguir pasando mas paginas, y solo se muestre la ultima pagina que tenia elemntos
 
@@ -833,8 +822,8 @@ const ChatsContent = () => {
             setOffsetToSearchNewContacts(newValue)
         } else {
             // aqui si la funcion GetlistOfUserByUsername devuelve un array igual a cero o vacio, quiero que no se muestre este array y se muestre el array anterior
-            setListOfNewContactSearched((prevList: any) => [...prevList])
-            setOffsetToSearchNewContacts((prevValue: any) => prevValue)
+            setListOfNewContactSearched((prevList) => [...prevList])
+            setOffsetToSearchNewContacts((prevValue) => prevValue)
         }
         console.log(usersObtained)
 
@@ -852,31 +841,10 @@ const ChatsContent = () => {
 
         const offset = newValue * limitOfNewContactsPerPage
 
-        const usersObtained: any = await GetlistOfUserByUsername(searchNewContactValue, offset, limitOfNewContactsPerPage)
+        const usersObtained = await GetlistOfUserByUsername(searchNewContactValue, offset, limitOfNewContactsPerPage)
 
-        // aqui adaptando la data de el usuario para que se compatible con los demas objetos que estan en el array usersToSkip y que vienen de contactsList 
-        const userDataToSkip = {
-            contact_user: userData,
-        }
-
-        //aqui creamos un array con todos los contactos con los que ya cuenta este usuario, asi cuando se haga la busqueda no le aparesca usuario que ya tiene como contacto, ni tampoco su propia cuentra, algo asi como una blacklist  
-        const usersToSkip = [...contactsList, userDataToSkip]
-
-        // aqui filtramos todos los usuario que nos tenga el mismo nombre que usuario actual del array usersToSkip, para evitar que el usuario pueda seleccionar como nuevo contacto a su propia cuenta o le otros cuentas que ya tiene como contactos
-
-        const listOfUsersFiltered: any = []
-
-        usersObtained.forEach((userObtained: any) => {
-
-            const userFounded = usersToSkip.find((user: any) => user.contact_user.username === userObtained.username)
-
-            if (userFounded) {
-                return
-            }
-
-            listOfUsersFiltered.push(userObtained)
-
-        })
+        // aqui obtenemos la lista de contacto buscados, pero filtrados la cuenta del usuario y todos sus contactos ya agregados para evitar que puede agregarse a si mismo a sus contactos ya existentes
+        const listOfUsersFiltered = FilterUserAndContactsFromContactSearchList(userData, contactsList, usersObtained)
 
         setListOfNewContactSearched(listOfUsersFiltered)
         setOffsetToSearchNewContacts(newValue)
@@ -914,48 +882,41 @@ const ChatsContent = () => {
         const contactsListObtained = await
             GetAllContacts()
 
-        setContactsList(contactsListObtained)
+        dispatch(updatecontactsList(contactsListObtained))
 
         // aqui actualizamos las notificaciones de todos los grupos en los que es miembro el usuario
-        const notificationsObtained: any = await GetAllNotificationsOfUser()
+        const notificationsObtained = await GetAllNotificationsOfUser()
 
         console.log(notificationsObtained)
 
-        const groupsObtained: any = await GetAllGroupChats()
+        const groupsObtained = await GetAllGroupChats()
 
 
 
         console.log(groupsObtained)
         // aqui estamos agregando el numero de notificaciones que tiene sin leer el usuario cada grupo  
         if (notificationsObtained) {
-            const groupListModificated = groupsObtained.map((groupData: any) => {
+            const listOfGroupsWithNotificationsSorted = AddNotificationsToGroupList(groupsObtained, notificationsObtained)
 
-                const notifications = notificationsObtained.filter((notification: any) => (notification.chat_id === groupData.group.chat_id))
-
-
-                const notificonsNumber = notifications.length
-
-                console.log(notifications)
-
-                return {
-                    ...groupData,
-                    notifications_number: notificonsNumber
-                }
-
-            })
-
-            const groupListOrdered = groupListModificated.sort((a: any, b: any) => b.notifications_number - a.notifications_number)
-
-            setGroupChatsList(groupListOrdered)
+            dispatch(updateGroupChatList(listOfGroupsWithNotificationsSorted))
 
         } else {
-            setGroupChatsList(groupsObtained)
+            dispatch(updateGroupChatList(groupsObtained))
         }
 
-        // aqui actulizamos el status de usuario como participante del chat que acaba de desconectarse
-        const newStatusValue = "inactive"
-        await UpdateStatusOfChatParticipant(groupData.chat_id, userData.user_id, newStatusValue)
+        console.log(lastParticipantEliminatedFromTheGroup)
 
+
+        // aqui validamos si el usuario sigue existiendo en el grupo como miembro, antes de actualizar su estado, esto para evitar errores en el caso de que el usurario se haya retiraso previmente del grupo 
+        const userExistsInTheGroup = await ValidateIfUserExistsInGroup(groupData.group_id, userData.user_id)
+
+
+        if (userExistsInTheGroup) {
+
+            // aqui actulizamos el status de usuario como participante del chat que acaba de desconectarse
+            const newStatusValue = "inactive"
+            await UpdateStatusOfChatParticipant(groupData.chat_id, userData.user_id, newStatusValue)
+        }
 
         // aqui emitimos un evento que le llegara a todos los demas miembros del grupo para que en su pantalla figura que el usuario se ah desconectado de el chat
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
@@ -970,7 +931,11 @@ const ChatsContent = () => {
 
 
 
-        setGroupData(groupBody.group)
+        dispatch(updateGroupData(groupBody.group))
+
+
+        // aqui actulizamos el estado de la variable setLastParticipantEliminatedFromTheGroup a false, para la proxima vez se puede ejecutar la logica de actualizacion a inactive del estado del particiapnte del group   
+        setLastParticipantEliminatedFromTheGroup(false)
     }
 
     const MenuNavBarOpenHandler = () => {
@@ -995,125 +960,124 @@ const ChatsContent = () => {
 
     const UpdatechatDataInUserData = (chatIdValue: any, chatType: string) => {
         // 
-        // const newDataForUser = {
-        //     ...userData,
-        //     chat_id: chatIdValue,
-        //     chat_type: chatType
-        // }
-
-
-        setUserData((prevData: any) => ({
-            ...prevData,
+        const newDataForUser = {
+            ...userData,
             chat_id: chatIdValue,
-            chat_type: chatType,
-        }))
+            chat_type: chatType
+        }
+
+
+        // setUserData((prevData: any) => ({
+        //     ...prevData,
+        //     chat_id: chatIdValue,
+        //     chat_type: chatType,
+        // }))
+
+        dispatch(updateUserData(newDataForUser))
 
         console.log(userData)
     }
 
 
-    const CloseMenuOpenGroupChatHandler = async (e: any) => {
+    const CloseMenuOpenGroupChatHandler = async (e: EventTypes) => {
+        if ('id' in e.target) {
 
-        if (!isOpenAChat && menuOpen || userData.chat_type === CONTACT_CHAT) {
+            if (!isOpenAChat && menuOpen || userData.chat_type === CONTACT_CHAT) {
 
-            if (userData.chat_type === CONTACT_CHAT) {
+                if (userData.chat_type === CONTACT_CHAT) {
 
-                const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
+                    const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
-                const newStatusValue = 'inactive'
+                    const newStatusValue = 'inactive'
 
-                // aqui estamos cambiando el status de esta usuario para su chat de contacto a inactivo, antes de cambiar al chat de grupo
-                await UpdateStatusOfChatParticipant(contactData.chat_id, userData.user_id, newStatusValue)
+                    // aqui estamos cambiando el status de esta usuario para su chat de contacto a inactivo, antes de cambiar al chat de grupo
+                    await UpdateStatusOfChatParticipant(contactData.chat_id, userData.user_id, newStatusValue)
 
-                socket.emit(A_PARTICIPANT_UNJOINED_TO_CONTACT_CHAT_EVENT, { authToken: `Bearer ${accessToken}`, chatId: userData.chat_id, contactSocketId: contactData.contact_user.socket_id })
+                    socket.emit(A_PARTICIPANT_UNJOINED_TO_CONTACT_CHAT_EVENT, { authToken: `Bearer ${accessToken}`, chatId: userData.chat_id, contactSocketId: contactData.contact_user.socket_id })
 
-                setContactData(contactBody)
+                    dispatch(updateContactData(contactBody))
 
-            }
-
-            // aqui estamos actualizando el valor de IsUserInNewChat cada que el usuario cambie de chat y el movimiento de scroll inicial tenga que reiniciarse
-            setIsUserInNewChat(true)
-
-
-            // ***** Aqui cambiamos el valor de isUserInRecentMessagesArea para que cuando se cambie de chat el moviemiento de scroll hacia el area de mensajes mas recientes se realize, ya que si no punemos esto no se hara el movimiento completo ****
-            setIsUserInRecentMessagesArea(true)
-
-
-            // ***************************
-
-            setIsOpenAChat(true)
-            setMenuOpen(false)
-            // UpdatechatDataInUserData('', '')
-
-            /* *********** actualizamos datos de la variable groupData *************  */
-            // Aqui logica para obetener el id del chat de grupo
-            const groupId = e.target.id
-            console.log(groupId)
-            const groupDataFiltered = groupChatsList.filter((elem) => elem.group.group_id === groupId)
-            const groupDataSelected = groupDataFiltered[0].group
-
-            setInvitationId(groupDataSelected.invitation_id)
-
-            const newStatusValue = 'active'
-
-            await UpdateStatusOfChatParticipant(groupDataSelected.chat_id, userData.user_id, newStatusValue)
-
-
-            // aqui estamos obtenido todo los miembros del grupos para luego utilizarlo en el map 
-            const membersListObtained = await GetAllMembersOfGroup(groupId)
-
-            // aqui estamos obteniendo todo los participantes del chat para luego utilizarlo en el map
-            const chatParticipants = await GetAllChatParticipantsOfGroup(groupDataSelected.chat_id)
-
-            const allParticipantsObtained = chatParticipants.chat_participants
-
-
-            // aqui estamos mapeando y filtrando los datos para que se nos devuelva un nuevo array que tenga el estado y el socketid incluido en la data de cada miembro  
-            const membersList = membersListObtained.map((member: any,) => {
-                const participantFound = allParticipantsObtained.filter((participant: any) => member.user.user_id === participant.user_id)
-
-                if (participantFound) {
-                    return {
-                        ...member,
-                        status: participantFound[0].status
-                    }
                 }
-            })
+
+                // aqui estamos actualizando el valor de IsUserInNewChat cada que el usuario cambie de chat y el movimiento de scroll inicial tenga que reiniciarse
+                setIsUserInNewChat(true)
 
 
-            const groupDataNewObject = {
-                ...groupDataSelected,
-                members: membersList
+                // ***** Aqui cambiamos el valor de isUserInRecentMessagesArea para que cuando se cambie de chat el moviemiento de scroll hacia el area de mensajes mas recientes se realize, ya que si no punemos esto no se hara el movimiento completo ****
+                setIsUserInRecentMessagesArea(true)
+
+
+                // ***************************
+
+                setIsOpenAChat(true)
+                setMenuOpen(false)
+                // UpdatechatDataInUserData('', '')
+
+                /* *********** actualizamos datos de la variable groupData *************  */
+                // Aqui logica para obetener el id del chat de grupo
+
+                const EventTarget = e.target.id as string
+                const groupId: string = EventTarget
+
+                console.log(groupId)
+                const groupDataFiltered = groupChatsList.filter((elem: any) => elem.group.group_id === groupId)
+                const groupDataSelected = groupDataFiltered[0].group
+
+                setInvitationId(groupDataSelected.invitation_id)
+
+                const newStatusValue = 'active'
+
+                await UpdateStatusOfChatParticipant(groupDataSelected.chat_id, userData.user_id, newStatusValue)
+
+
+                // aqui estamos obtenido todo los miembros del grupos para luego utilizarlo en el map 
+                const membersListObtained = await GetAllMembersOfGroup(groupId)
+
+                // aqui estamos obteniendo todo los participantes del chat para luego utilizarlo en el map
+                const chatParticipants = await GetAllChatParticipantsOfGroup(groupDataSelected.chat_id)
+
+                const allParticipantsObtained = chatParticipants.chat_participants
+
+
+                // aqui obtenemos la lista de miembros con sus status actualizados
+                const membersList = GetListOfMembersWithUpdatedStatuses(membersListObtained, allParticipantsObtained)
+
+                const groupDataNewObject = {
+                    ...groupDataSelected,
+                    members: membersList
+                }
+
+                console.log(groupDataNewObject.members)
+                dispatch(updateGroupData(groupDataNewObject))
+
+
+                /* *********** aqui actualizamos los valores de las propiedades de la variable UserData *************  */
+
+                // aqui obtenemos el valor de chat_id del chat de grupo seleccionado para actualizar la propiedad chat_id del usuario y que asi se ejecute el useEffect que ejecutara la logica para obtener los mensajes de chat del grupo seleccionado  
+                const chatIdValue = groupDataSelected.chat_id
+                const chatType = GROUP_CHAT
+                //Aqui actualizamos las propiedades chat_type y chat_id del usuario despues de haber saltado a otro chat 
+                UpdatechatDataInUserData(chatIdValue, chatType)
+
+
+
+                //aqui eliminamos todas la notificaciones del grupo que no leyo el usuario 
+                await DeleteAllNotifications(groupDataSelected.chat_id)
+
+
             }
-
-            console.log(groupDataNewObject.members)
-            setGroupData(groupDataNewObject)
-
-
-            /* *********** aqui actualizamos los valores de las propiedades de la variable UserData *************  */
-
-            // aqui obtenemos el valor de chat_id del chat de grupo seleccionado para actualizar la propiedad chat_id del usuario y que asi se ejecute el useEffect que ejecutara la logica para obtener los mensajes de chat del grupo seleccionado  
-            const chatIdValue = groupDataSelected.chat_id
-            const chatType = GROUP_CHAT
-            //Aqui actualizamos las propiedades chat_type y chat_id del usuario despues de haber saltado a otro chat 
-            UpdatechatDataInUserData(chatIdValue, chatType)
-
-
-
-            //aqui eliminamos todas la notificaciones del grupo que no leyo el usuario 
-            await DeleteAllNotifications(groupDataSelected.chat_id)
-
-
         }
     }
 
 
-    const CloseMenuOpenContactChatHandler = async (e: any) => {
+    // NOS QUEDAMOS HASTA ACA EN LA REFACTORIZACION
+
+    const CloseMenuOpenContactChatHandler = async (e: EventTypes) => {
 
         // if (userData.chat_type === GROUP_CHAT || userData.chat_type === CONTACT_CHAT || userData.chat_type === '') {
 
 
-        const chatIdOfContactChat = e.target.id
+        const chatIdOfContactChat = e.currentTarget.id
 
 
         if (userData.chat_id !== '' && chatIdOfContactChat !== contactData.chat_id && userData.chat_type === CONTACT_CHAT) {
@@ -1151,13 +1115,13 @@ const ChatsContent = () => {
 
         /* *********** actualizamos datos de la variable contactData *************  */
         // Aqui logica para obetener el id del chat de grupo
-        const chatId = e.target.id
+        const chatId = e.currentTarget.id
         console.log(chatId)
 
         // aqui estamos obteniendo la data del chat de contacto seleccionado
-        const contactDataFiltered = contactsList.filter((elem: any) => elem.chat_id === chatId)
+        const contactDataSelected = GetContactDetailsFromContactList(contactsList, chatId)
 
-        const contactDataSelected = contactDataFiltered[0]
+
 
         console.log(contactDataSelected)
 
@@ -1188,7 +1152,7 @@ const ChatsContent = () => {
 
 
         console.log(contactDataSelected)
-        setContactData(contactDataObtained)
+        dispatch(updateContactData(contactDataObtained))
 
 
         //aqui eliminamos todas la notificaciones del chat de contacto que no leyo el usuario 
@@ -1200,39 +1164,12 @@ const ChatsContent = () => {
 
 
         // * *********** aqui obtenemos y actualizamos las notificacion de todos los contactos del usuario ********
-        const notificationsObtained: any = await GetAllNotificationsOfUser()
+        const notificationsObtained = await GetAllNotificationsOfUser()
 
+        // aqui obtenemos la lista de contactos con el mumero de notificaciones actualizados
+        const contactListUpdated = ObtainContactListWithUpdatedNotificationNumber(contactsList, notificationsObtained)
 
-        const contactListModificated = contactsList.map((contactData: any) => {
-
-            const notificationFound = notificationsObtained.filter((notification: any) => notification.chat_id === contactData.chat_id)
-
-            console.log(notificationFound)
-
-            if (notificationFound) {
-                const notificonsNumber = notificationFound.length
-
-                return {
-                    ...contactData,
-                    notifications_number: notificonsNumber
-                }
-            }
-
-
-            return {
-                ...contactData,
-                notifications_number: 0
-            }
-
-
-        })
-
-        console.log(contactListModificated)
-
-        const contactListOrdered: any = contactListModificated.sort((a: any, b: any) => b.notifications_number - a.notifications_number)
-
-        setContactsList(contactListOrdered)
-
+        dispatch(updatecontactsList(contactListUpdated))
 
 
         // }
@@ -1242,7 +1179,7 @@ const ChatsContent = () => {
     const ValidateUserInRecentMessageArea = async () => {
 
         // Aqui utilizamos el observer para comprobar que el usuario no se encuentra en la zona de los ultimos mensajes del chat, si no en una zona mas arriba, por lo que tenemos que enviarle 
-        const RecentMessagesIntersection = async (entries: any) => {
+        const RecentMessagesIntersection = async (entries: IntersectionObserverEntry[]) => {
             const firstEntry = entries[0]
 
             setIsUserInRecentMessagesArea(firstEntry.isIntersecting)
@@ -1266,7 +1203,7 @@ const ChatsContent = () => {
 
         /* ********** aqui ejecutamos la logica del interception para obtener los mensajes antiguos ********* */
 
-        const GetOldMessagesIntersection = async (entries: any) => {
+        const GetOldMessagesIntersection = async (entries: IntersectionObserverEntry[]) => {
             const firstEntry = entries[0]
 
             // console.log('se quiso obtener mensajes antiguos')
@@ -1328,16 +1265,16 @@ const ChatsContent = () => {
             const loadingToast = LoadingToast('loading', "top-center")
 
             // aqui validamos que el miembro que este realizando esta accion sea un administrador 
-            const thisUserIsAdmin = groupData.members.find((member: any) => member.user.user_id === userData.user_id)
+            const thisUserIsAdmin = ValidateIfTheUserIsAnAdministrator(groupData, userData)
 
-            if (thisUserIsAdmin.role !== 'admin') {
+            if (thisUserIsAdmin?.role !== 'admin') {
                 throw { error: { message: 'You cannot perform this action if you are not an administrator' } }
             }
 
             // aqui validamos que el administrador no este eliminando a otro administrado, ya que eso no se puede
-            const memberFound = groupData.members.find((member: any) => member.user.user_id === memberIdToDelete)
+            const memberFound = ValidateIfTheMemberIsAnAdministrator(groupData, memberIdToDelete)
 
-            if (memberFound.role === 'admin') {
+            if (memberFound?.role === 'admin') {
                 throw { error: { message: 'Cant remove group administrators' } }
             }
 
@@ -1359,17 +1296,10 @@ const ChatsContent = () => {
 
             socket.emit(A_PARTICIPANT_DELETED_BY_ADMIN_CHAT_EVENT, dataForEmit)
 
-            // aqui validamos que el administrador no este eliminando a otro administrado, ya que eso no se puede
-            const memberListUpdated = groupData.members.filter((member: any) => member.user.user_id !== memberIdToDelete)
+            // aqui validamos retiramos al miembro recien eliminado de la lista del usuario en la vista
+            const newGroupData = GetMemberListWithoutRecentlyRemovedMember(groupData, memberIdToDelete)
 
-            console.log(memberListUpdated)
-
-            const newGroupData = {
-                ...groupData,
-                members: memberListUpdated
-            }
-
-            setGroupData(newGroupData)
+            dispatch(updateGroupData(newGroupData))
             setUserIdToChangeRoleOfMember('')
             setIsOpenCardToChangeRoleOfMember(false)
 
@@ -1395,16 +1325,16 @@ const ChatsContent = () => {
             const loadingToast = LoadingToast('loading', "top-center")
 
             // aqui validamos que el miembro que este realizando esta accion sea un administrador 
-            const thisUserIsAdmin = groupData.members.find((member: any) => member.user.user_id === userData.user_id)
+            const thisUserIsAdmin = ValidateIfTheUserIsAnAdministrator(groupData, userData)
 
-            if (thisUserIsAdmin.role !== 'admin') {
+            if (thisUserIsAdmin?.role !== 'admin') {
                 throw { error: { message: 'You cannot perform this action if you are not an administrator' } }
             }
 
             // aqui validamos que el administrador no este volviendo administrador a otro administrado, ya que eso no se puede
-            const memberFound = groupData.members.find((member: any) => member.user.user_id === userIdToChangeRoleOfMember)
+            const memberFound = ValidateIfTheMemberIsAnAdministrator(groupData, userIdToChangeRoleOfMember)
 
-            if (memberFound.role === 'admin') {
+            if (memberFound?.role === 'admin') {
                 throw { error: { message: 'The member is already an administrator of the group' } }
             }
 
@@ -1430,25 +1360,9 @@ const ChatsContent = () => {
 
 
             // aqui actualizamos el role del miembro que fue ascendido a admin, para el administrador
-            const memberListUpdated = groupData.members.map((member: any) => {
+            const newGroupData = GetListOfMembersWithUpdatedMemberRole(groupData, userIdToChangeRoleOfMember)
 
-                if (member.user.user_id === userIdToChangeRoleOfMember) {
-
-                    return { ...member, role: 'admin' }
-
-                }
-
-                return member
-            })
-
-
-
-            const newGroupData = {
-                ...groupData,
-                members: memberListUpdated
-            }
-
-            setGroupData(newGroupData)
+            dispatch(updateGroupData(newGroupData))
 
             setUserIdToChangeRoleOfMember('')
             setIsOpenCardToChangeRoleOfMember(false)
@@ -1514,15 +1428,20 @@ const ChatsContent = () => {
             // aqui obtenemos de nuevo todos los grupos de los que el usuario forma parte sin el grupo recien eliminado, para luego actualizar la vista
             const userGroupsObtained = await GetAllGroupChats()
 
-            setGroupChatsList(userGroupsObtained)
+            dispatch(updateGroupChatList(userGroupsObtained))
 
             // aqui obtenemos siempre la cantidad de miembros restante que hay en el grupo, y si no quedan mas integrantes en el grupo este sera eliminado con todos los mensajes del grupo permanentemente
-            const numberOfMembersInGroup = await GetAllMembersOfGroup(groupId)
+            const numberOfMembersInGroup = await ValidateMembersOfGroup(groupId)
+            console.log(numberOfMembersInGroup)
 
             if (numberOfMembersInGroup.length === 0) {
 
                 // este funcion eleminara permanente el grupo que ya no tenga integrantes y todos los mensajes del grupo 
                 await PermanentlyDeleteGroup(groupData.chat_id, groupId)
+
+                // aqui cambiamos el valorde este state a true para que cuando se ejecute la  func BackToMenuHandler en la parte donde actualiza el estado del particiapante del chat a inactive, ahora ya no ejecute esa ligica si ya se elimino permanentemente el grupo 
+                setLastParticipantEliminatedFromTheGroup((prevValue: boolean) => true)
+
 
             }
 
@@ -1550,14 +1469,14 @@ const ChatsContent = () => {
 
         if (inputValue === '') {
             const groupsListObtained = await GetAllGroupChats()
-            setGroupChatsList((prevList: any) => groupsListObtained)
+            dispatch(updateGroupChatList(groupsListObtained))
             return
         }
 
 
         const groupsFiltered = groupChatsList.filter((item: any) => item.group.group_name.indexOf(inputValue) === 0)
 
-        setGroupChatsList((prevList: any) => groupsFiltered)
+        dispatch(updateGroupChatList(groupsFiltered))
 
     }
 
@@ -1569,14 +1488,14 @@ const ChatsContent = () => {
 
         if (inputValue === '') {
             const contactsListObtained = await GetAllContacts()
-            setContactsList((prevList: any) => contactsListObtained)
+            dispatch(updatecontactsList(contactsListObtained))
             return
         }
 
 
         const contactsFiltered: any = contactsList.filter((item: any) => item.contact_user.username.indexOf(inputValue) === 0)
 
-        setContactsList(contactsFiltered)
+        dispatch(updatecontactsList(contactsFiltered))
 
     }
 
@@ -1604,7 +1523,7 @@ const ChatsContent = () => {
             // aqui estamos actualizando la data de chat de contacto y actualizando el valor de la proppiedad is_blocked a true, para que en la vista del chat se visualize al contacto como bloqueado al instante  
             const newContactChatData = await GetContactChatData(contactData.chat_id, contactData.contact_user.user_id)
 
-            setContactData(newContactChatData)
+            dispatch(updateContactData(newContactChatData))
 
 
             // aqui eliminamos el toast de loading
@@ -1669,7 +1588,7 @@ const ChatsContent = () => {
             const newContactChatData = await GetContactChatData(contactData.chat_id, contactData.contact_user.user_id)
 
             console.log(newContactChatData)
-            setContactData(newContactChatData)
+            dispatch(updateContactData(newContactChatData))
 
 
             // aqui eliminamos el toast de loading
@@ -1718,8 +1637,7 @@ const ChatsContent = () => {
             // aqui obtenemos los datos mas recientes del chat de contacto del usuario, para que no haya ningun error  
             const newContactChatData = await GetContactChatData(contactData.chat_id, contactData.contact_user.user_id)
 
-            console.log(newContactChatData)
-            setContactData(newContactChatData)
+            dispatch(updateContactData(newContactChatData))
 
             // aqui eliminamos el toast de loading
             toast.dismiss(loadingToast)
@@ -1790,8 +1708,8 @@ const ChatsContent = () => {
 
             toast.dismiss(loadingToast)
 
-            setContactsList(contactsList)
-            setContactData(contactBody)
+            dispatch(updatecontactsList(contactsList))
+            dispatch(updateContactData(contactBody))
             setChatMessages([])
 
             CloseSettingsOfContactChat()
@@ -1845,7 +1763,7 @@ const ChatsContent = () => {
             const newContactChatData = await GetContactChatData(contactData.chat_id, contactData.contact_user.user_id)
 
             console.log(newContactChatData)
-            setContactData(newContactChatData)
+            dispatch(updateContactData(newContactChatData))
 
 
             toast.dismiss(loadingToast)
@@ -1885,6 +1803,8 @@ const ChatsContent = () => {
         };
     }, []);
 
+
+    // HASTA AQUI ME EH QUEDADO
 
     useEffect(() => {
 
@@ -1947,159 +1867,56 @@ const ChatsContent = () => {
 
                 // aqui logica para eliminar la notificaciones de mensajes de la db, si el usuario llega a leer los mensajes no leidos en el momento
 
-                const firstMessageInTheList = chatmessages.find((message: any) => message.message_id)
+                const firstMessageInTheList = chatmessages.find((message) => {
+                    if ('message_id' in message) {
+                        return message.message_id
+                    }
+                })
 
                 const messagesLimit = 20
-                const creationDate = TransformDateToCorrectFormatString(firstMessageInTheList.timestamp)
+                let creationDate: string = ''
+                if (firstMessageInTheList && 'timestamp' in firstMessageInTheList) {
+                    creationDate = TransformDateToCorrectFormatString(firstMessageInTheList.timestamp)
+                }
 
 
                 // aqui estamos validando el tipo de chat que eligio el usuario, para llamar extrear mensajes de grupo o de contact
-                const oldMessagesObtained: any = (userData.chat_type === GROUP_CHAT) ?
+                const oldMessagesObtained: messagesBodyFromBackend[] = (userData.chat_type === GROUP_CHAT) ?
                     await GetAllMessagesFromAGroupChat(userData.chat_id, messagesLimit, creationDate)
                     :
                     await GetAllMessagesFromAContactChat(userData.chat_id, messagesLimit, creationDate)
 
 
                 // Aqui validamos que la lista de mensajes antiguos que se solicito, ya exista en el array actual de mensajes, para que se evite que el cliente vea una duplicacion de los mensajes antiguos del chat
-                const listMessageAlreadyExist = oldMessagesObtained.find((message: any) => message.message_id === chatmessages[0].message_id)
+                const listMessageAlreadyExist = oldMessagesObtained.find((message: messagesBodyFromBackend) => {
+                    if (chatmessages[0] && 'message_id' in chatmessages[0]) {
+                        return message.message_id === chatmessages[0].message_id
+                    }
+                })
 
                 if (listMessageAlreadyExist) return
 
-                const oldMessagesModified = oldMessagesObtained.map((message: any, index: number): bodyMessageToShowInView => {
-                    //  aqui pasamos el timestamp recibido de cada mensaje a funciones que convierten la hora y fecha de creacion del mensaje de timestamp a string 
-
-                    const timestampToDate = new Date(message.timestamp)
+                // aqui adaptamos los datos de los mensajes antiguos, para que sean aptos para ser mostrados en la vista 
+                const oldMessagesModified = ConvertBackendMessageBodyToViewableMessages(oldMessagesObtained, userData)
 
 
-                    const creationHourOfMessage = ConvertDateToHourFormat(timestampToDate)
-                    // console.log(creationHourOfMessage)
+                const allMessagesForUpdate: ChatMessages = await new Promise((resolve) => {
 
-                    const creationDayOfMessage = ConvertDateToDayFormat(timestampToDate)
-                    // console.log(creationDayOfMessage)
-
-                    const theMessageIsFromTheCurrentUser = message.user_id === userData.user_id ? true : false
-
-
-                    return {
-                        message_id: message.message_id,
-                        chat_id: message.chat_id,
-                        user_id: message.user_id,
-                        username: message.user_data.username,
-                        date: creationDayOfMessage,
-                        hour: creationHourOfMessage,
-                        message_content: message.message_content,
-                        profile_picture: message.user_data.profile_picture,
-                        message_type: message.message_type,
-                        timestamp: timestampToDate.getTime(),
-                        is_current_user_messsage: theMessageIsFromTheCurrentUser,
-                        is_read: message.is_read
-                    }
-
-
-                })
-
-
-
-                const allMessagesForUpdate = await new Promise((resolve: any) => {
-
-
+                    // aqui juntamos la lista de mensajes antiguos y con la lista actual de mensajes. 
                     const allMessages = [...oldMessagesModified, ...chatmessages]
 
-                    const arrayOfMessagesToReturn: any = []
-                    const arrayOfMemberJoined: any = []
 
-                    console.log(allMessages)
-
-                    // aqui estamos integrando dentro del array de messages la fecha de emicion de cada bloque de mensajes  
-
-                    allMessages.forEach((message: any, index: number) => {
-
-                        // console.log(allMessages)
-                        // console.log(message)
+                    // aqui estamos obteniendo la lista de mensajes antiguos con las fechas de emision
+                    const dataToReturn = GetListOfOldMessagesWithIssueDate(allMessages)
 
 
-                        // aqui esta la fecha del mensaje actual y del mensaje anterior para hacer la comparacion 
-                        const beforeIndex = index === 0 ? index : index - 1
-
-                        // ******aqui filtramos todos los mensajes con los siguiente condicionales****** 
-
-                        // esto se ejecuta si el elemento actual es de tipo unionDate
-                        if (message.message_type === "unionDate") {
-                            console.log('se encontro que el elemento actual es de tipo unionDate')
-                            arrayOfMemberJoined.push(message)
-                            return
-                        }
-
-                        // esto se ejecuta al inicio de la iteracion del bucle en el primer elemento en el indice 0
-                        if (index === 0) {
-                            arrayOfMessagesToReturn.push(message)
-                            return
-                        }
-
-                        // esto se ejecuta si el elemenento anterior no es de tipo texto
-                        if (allMessages[beforeIndex].message_type !== 'text' || message.message_type !== 'text') {
-                            console.log('se encontro que el elemento anterior no es de tipo texto')
-                            arrayOfMessagesToReturn.push(message)
-                            return
-                        }
-
-
-                        // console.log(beforeIndex)
-
-                        const currentTimestampValue: any = message.timestamp
-
-
-                        // console.log(allMessages[beforeIndex].timestamp)
-                        const beforeTimestampToDate = new Date(allMessages[beforeIndex].timestamp)
-                        // console.log(beforeTimestampToDate)
-
-
-                        // aqui convertimos el timestamp de la variable currentTimestampValue a un objeto date
-                        const currentTimestampToDate = new Date(currentTimestampValue)
-                        // console.log(currentTimestampToDate)
-
-
-                        // aqui estamos validando que la fecha de dia del mensaje anterior sea diferente al de el actual, para saber si la fecha actual ya no es la misma que la de lo mensajes anteriores 
-                        const isMessageHasDiferentDate = beforeTimestampToDate.getDay() !== currentTimestampToDate.getDay()
-
-                        // console.log(currentTimestampValue)
-
-                        // aqui transformamos la fecha seleccionada a string, para indicar la fecha desde la que se emitieron este grupo de mensajes
-                        const emitionDate = TransformDateToEmitionDate(currentTimestampValue)
-
-                        // console.log(emitionDate)
-
-                        // aqui estamos agregando el objeto de fecha de emision de mensajes a la lista de mnsajes para que el usuario puede ver desde que fecha se emitieron los mensajes siempre que el valor de isMessageHasDiferentDate se true 
-                        if (isMessageHasDiferentDate && emitionDate) {
-
-
-                            const dateOfEmitionNextMessages: any = {
-                                emition_id: uuidv4(),
-                                emition_date: emitionDate,
-                                message_type: 'emitionDate'
-                            }
-
-                            // console.log(dateOfEmitionNextMessages)
-
-                            arrayOfMessagesToReturn.push(dateOfEmitionNextMessages)
-
-                            // console.log('se aplico una fecha de emition de mensajes')
-                        }
-
-                        // aqui agregamos el mensaje que se comparo su timestamp con el otro mensaje anterior y resulto que las fechas son diferente para que se cree la fecha de emicion de un grupo de mensajes diferente antes de agregar el mensaje actual 
-                        arrayOfMessagesToReturn.push(message)
-
-                        return
-                    })
-
-
-                    resolve([...arrayOfMemberJoined, ...arrayOfMessagesToReturn])
+                    resolve(dataToReturn)
                 })
 
 
 
                 if (oldMessagesModified.length > 0) {
-                    setChatMessages((prevMessages: any) => {
+                    setChatMessages((prevMessages) => {
                         if (!listMessageAlreadyExist) {
                             return allMessagesForUpdate
                         } else {
@@ -2126,14 +1943,16 @@ const ChatsContent = () => {
     /* ************ Aqui Obtenemos los datos del usuario y los adaptamos para que agrege la propiedad chat_id y chat_type  
     ******* */
     useEffect(() => {
-        try {
 
-            const RunAllFunc = async () => {
+        const RunAllFunc = async () => {
+            try {
 
-                const resp: any = await GetUserData(router)
-                setUserData(resp)
+                const resp = await GetUserData(router)
+                dispatch(updateUserData(resp))
 
                 console.log(resp)
+                console.log(userData)
+
 
 
                 // Aqui estamos validando que ancgo de la pagina se mayor que 768 para que cuando el usuario este en dispositivos como laptops el menu del chat deje de estar en absolute y no se oculte
@@ -2148,7 +1967,7 @@ const ChatsContent = () => {
 
 
 
-                const HandlerOfUserSocketIdUpdated = async (response: any) => {
+                const HandlerOfUserSocketIdUpdated = async (response: HandlerOfUserSocketIdUpdatedPayload) => {
                     try {
 
                         if (response.status === 'FAILED') {
@@ -2170,10 +1989,12 @@ const ChatsContent = () => {
                         }
 
                         console.log(newuserData)
-                        setUserData(newuserData)
+                        // setUserData(newuserData)
+                        dispatch(updateUserData(newuserData))
 
                         setIsUserSocketIDUpdated(true)
                         console.log(response)
+                        console.log(userData)
 
                     } catch (error) {
                         router.push('/profile')
@@ -2187,65 +2008,38 @@ const ChatsContent = () => {
                 // ********** Aqui Obtemos la lista de los grupos y los actualizamos con todas la notificaciones del usuario tanto de tipo grupo como contact ******
 
 
-                const notificationsObtained: any = await GetAllNotificationsOfUser()
+                const notificationsObtained = await GetAllNotificationsOfUser()
 
 
                 console.log(notificationsObtained)
 
-                const groupsObtained: any = await GetAllGroupChats()
-                const contactsObtained: any = await GetAllContacts()
+                const groupsObtained = await GetAllGroupChats()
+                const contactsObtained = await GetAllContacts()
 
 
                 console.log(groupsObtained)
                 // aqui estamos agregando el numero de notificaciones que tiene sin leer el usuario a cada grupo o chat de contacto  
                 if (notificationsObtained) {
 
-                    const groupListModificated = groupsObtained.map((groupData: any) => {
 
-                        const notifications = notificationsObtained.filter((notification: any) => notification.chat_id === groupData.group.chat_id)
+                    // aqui estamos obteniendo la lista de grupos ordenadas por cantidad de notificiaciones y con sus notificaciones integradas
+                    const groupListOrdered = AddNotificationsToGroupList(groupsObtained, notificationsObtained)
 
-                        const notificonsNumber = notifications.length
 
-                        console.log(notifications)
-
-                        return {
-                            ...groupData,
-                            notifications_number: notificonsNumber
-                        }
-
-                    })
-
-                    const contactListModificated = contactsObtained.map((contactData: any) => {
-
-                        const notifications = notificationsObtained.filter((notification: any) => notification.chat_id === contactData.chat_id)
-
-                        const notificonsNumber = notifications.length
-
-                        console.log(notifications)
-
-                        return {
-                            ...contactData,
-                            notifications_number: notificonsNumber
-                        }
-
-                    })
-
-                    const groupListOrdered = groupListModificated.sort((a: any, b: any) => b.notifications_number - a.notifications_number)
-
-                    const contactsListOrdered = contactListModificated.sort((a: any, b: any) => b.notifications_number - a.notifications_number)
-
+                    // aqui estamos obteniendo la lista de contactos ordenadas por cantidad de notificiaciones y con sus notificaciones integradas
+                    const contactsListOrdered = AddNotificationsToContactList(contactsObtained, notificationsObtained)
 
 
                     console.log(groupListOrdered)
                     console.log(contactsListOrdered)
 
-                    setGroupChatsList(groupListOrdered)
-                    setContactsList(contactsListOrdered)
+                    dispatch(updateGroupChatList(groupListOrdered))
+                    dispatch(updatecontactsList(contactsListOrdered))
 
                 } else {
 
-                    setGroupChatsList(groupsObtained)
-                    setContactsList(contactsObtained)
+                    dispatch(updateGroupChatList(groupsObtained))
+                    dispatch(updatecontactsList(contactsObtained))
 
                 }
 
@@ -2261,14 +2055,15 @@ const ChatsContent = () => {
                     socket.off(GET_USER_SOCKET_ID_EVENT, HandlerOfUserSocketIdUpdated)
                 }
 
-
+            } catch (error) {
+                console.log(error)
+                router.push('/')
             }
-
-            RunAllFunc()
-
-        } catch (error) {
-            router.push('/profile')
         }
+
+        RunAllFunc()
+
+
     }, [])
 
 
@@ -2288,12 +2083,8 @@ const ChatsContent = () => {
 
 
 
-
-
-
                 // aqui cambiamos el valor de ThereUnreadMessages a falso cada vez que el usuario cambia de chat, para cuando se cree en mensajes de tipo unreadMessage en la funcion ContactMessageEventFunc o GroupMessageEventFunc 
                 setThereUnreadMessages(false)
-
 
 
 
@@ -2319,31 +2110,33 @@ const ChatsContent = () => {
 
                 /* ************ Aqui obtenemos la lista de participantes y los modificiamos para que puedan mostrar en la vista en la seccion de mensajes ******* */
 
-                let ParticipantsListModified: any = []
+                let ParticipantsListModified: chatParticipantBody[] = []
 
                 if (userData.chat_type === GROUP_CHAT) {
 
 
                     // aqui voy a obtener todos los participantes del chat y la fecha en la que se unieron al grupo y no agregamos logica similar para el de contactos, porque en el no se visualiza directamente los participantes del chat como en el del grupo 
-                    const chatParticipantsList: any = await GetAllChatParticipantsOfGroup(userData.chat_id)
+                    const chatParticipantsList = await GetAllChatParticipantsOfGroup(userData.chat_id)
 
 
-                    ParticipantsListModified = chatParticipantsList.chat_participants.map((participant: any) => {
+                    ParticipantsListModified = chatParticipantsList.chat_participants.map((participant: chatParticipantBody) => {
                         //  aqui estamos agregando solo una nueva propiedad que es message_type a todos los objetos de la lista de participantes, con el valor de unionDate, con la finalidad de poder diferenciarlo con los mensaje de tipo texto
 
                         const timestampToDate = new Date(participant.union_date)
 
-                        return {
+
+                        const data: chatParticipantBody = {
                             ...participant,
                             union_date: timestampToDate.getTime(),
                             message_type: 'unionDate'
                         }
+                        return data
                     })
 
                     console.log('se volvio a ejecutar el useEffect con dependencias userData.chat_id, numberOfMembers')
 
                     // aqui estamos validando si este usuario es un admin o no, para permitirle que pueda eliminar miembros o ascender otros miembros a admins
-                    const isUserAdmin = groupData.members.find((member: any) => member.user.user_id === userData.user_id && member.role === 'admin')
+                    const isUserAdmin = groupData.members.some((member) => member.user.user_id === userData.user_id && member.role === 'admin')
 
                     setIsUserAdminToGroup(isUserAdmin)
 
@@ -2361,7 +2154,7 @@ const ChatsContent = () => {
                 const messagesLimit = 20
 
                 // aqui estamos validando el tipo de chat que eligio el usuario, para llamar extrear mensajes de grupo o de contact
-                const messagesList: any = (userData.chat_type === GROUP_CHAT) ?
+                const messagesList = (userData.chat_type === GROUP_CHAT) ?
                     await GetAllMessagesFromAGroupChat(userData.chat_id, messagesLimit, creationDate)
                     :
                     await GetAllMessagesFromAContactChat(userData.chat_id, messagesLimit, creationDate)
@@ -2370,46 +2163,17 @@ const ChatsContent = () => {
                 console.log(creationDate)
                 console.log(messagesList)
                 // aqui estamos mapeando el array de mensajes obtenidos a la estructura de objeto que acepta el componente message
-                const messagesListModified = messagesList.map((message: any, index: any): bodyMessageToShowInView => {
-                    //  aqui pasamos el timestamp recibido de cada mensaje a funciones que convierten la hora y fecha de creacion del mensaje de timestamp a string 
-                    const currentTimestampToDate = new Date(message.timestamp)
 
 
-                    const creationHourOfMessage = ConvertDateToHourFormat(currentTimestampToDate)
-                    // console.log(creationHourOfMessage)
-
-                    const creationDayOfMessage = ConvertDateToDayFormat(currentTimestampToDate)
-                    // console.log(creationDayOfMessage)
-
-                    const theMessageIsFromTheCurrentUser = message.user_id === userData.user_id ? true : false
-
-                    const messageToReturn = {
-                        message_id: message.message_id,
-                        chat_id: message.chat_id,
-                        user_id: message.user_id,
-                        username: message.user_data.username,
-                        date: creationDayOfMessage,
-                        hour: creationHourOfMessage,
-                        message_content: message.message_content,
-                        profile_picture: message.user_data.profile_picture,
-                        message_type: message.message_type,
-                        timestamp: currentTimestampToDate.getTime(),
-                        is_read: message.is_read,
-                        is_current_user_messsage: theMessageIsFromTheCurrentUser
-                    }
-
-
-                    return messageToReturn
-
-                })
+                const messagesListModified = ConvertBackendMessageBodyToViewableMessages(messagesList, userData)
 
 
 
                 // *******AQUI AGREGAMOS LAS FECHAS DE EMISION DE LOS DIFERENTES GRUPOS DE MENSAJES CON FECHAS DIREFERENTE A LA LISTA DE MENSAJES ************ 
 
-                const getMessages = await new Promise((resolve: any) => {
+                const getMessages: ChatMessages = await new Promise((resolve) => {
 
-                    let allMessages: any
+                    let allMessages: (bodyMessageToShowInView | chatParticipantBody)[]
 
                     // aqui varificamos que el usario este en un chat de grupo o en uno de contacto, si esta en grupo se mostraran los participantes del grupo en la vista, pero si es chat de contacto, los participantes del chat no se visualizaran
                     if (userData.chat_type === GROUP_CHAT) {
@@ -2421,93 +2185,25 @@ const ChatsContent = () => {
                     }
 
 
-                    const arrayOfMessagesToReturn: any = []
-                    const arrayOfMemberJoined: any = []
+                    const dataToReturn = GetListOfMessagesWithIssueDate(allMessages)
 
-                    // console.log(allMessages)
-
-                    // aqui estamos integrando dentro del array de messages la fecha de emicion de cada bloque de mensajes  
-
-                    allMessages.forEach((message: any, index: number) => {
-
-                        // console.log(allMessages)
-                        // console.log(message)
-
-
-                        // aqui esta la fecha del mensaje actual y del mensaje anterior para hacer la comparacion 
-                        const beforeIndex = index === 0 ? index : index - 1
-
-                        if (message.message_type === "unionDate") {
-                            console.log('se encontro que el elemento anterior no es de tipo texto')
-                            arrayOfMemberJoined.push(message)
-                            return
-                        }
-
-                        if (index === 0) {
-                            arrayOfMessagesToReturn.push(message)
-                            return
-                        }
-
-                        if (allMessages[beforeIndex].message_type !== 'text' || message.message_type !== 'text') {
-                            console.log('se encontro que el elemento anterior no es de tipo texto')
-                            arrayOfMessagesToReturn.push(message)
-                            return
-                        }
-
-
-                        // console.log(beforeIndex)
-
-                        const currentTimestampValue: any = message.timestamp
-
-
-                        // console.log(allMessages[beforeIndex].timestamp)
-                        const beforeTimestampToDate = new Date(allMessages[beforeIndex].timestamp)
-                        // console.log(beforeTimestampToDate)
-
-
-                        // console.log(currentTimestampValue)
-                        const currentTimestampToDate = new Date(currentTimestampValue)
-                        // console.log(currentTimestampToDate)
-
-
-                        // aqui estamos validando que la fecha de dia del mensaje anterior sea diferente al de el actual, para saber si la fecha actual ya no es la misma que la de lo mensajes anteriores 
-                        const isMessageHasDiferentDate = beforeTimestampToDate.getDay() !== currentTimestampToDate.getDay()
-
-                        // console.log(currentTimestampValue)
-
-                        const emitionDate = TransformDateToEmitionDate(currentTimestampValue)
-
-                        // console.log(emitionDate)
-
-                        if (isMessageHasDiferentDate && emitionDate) {
-
-                            const dateOfEmitionNextMessages: any = {
-                                emition_id: uuidv4(),
-                                emition_date: emitionDate,
-                                message_type: 'emitionDate'
-                            }
-
-                            // console.log(dateOfEmitionNextMessages)
-
-                            arrayOfMessagesToReturn.push(dateOfEmitionNextMessages)
-
-                            // console.log('se aplico una fecha de emition de mensajes')
-                        }
-
-                        arrayOfMessagesToReturn.push(message)
-
-                        return
-                    })
-
-                    resolve([...arrayOfMemberJoined, ...arrayOfMessagesToReturn])
+                    resolve(dataToReturn)
                 })
 
                 console.log(messagesListModified)
 
                 // aqui combinamos en un mismo array los arrays de chatParticipantsList y messagesListModified para luego ordenarlos por el metodo sort()
-                const combineOflists: any = getMessages
+                const combineOflists = getMessages
 
-                const orderlistForDate = combineOflists.sort((a: any, b: any) => a.union_date - b.timestamp)
+                const orderlistForDate = combineOflists.sort((a, b) => {
+                    if ('union_date' in a && 'timestamp' in b) {
+                        const aDate = a.union_date as number;
+                        const bDate = b.timestamp as number;
+                        return aDate - bDate
+                    }
+
+                    return 0
+                })
 
                 // console.log(orderlistForDate)
 
@@ -2542,19 +2238,25 @@ const ChatsContent = () => {
 
             console.log('se volvio a ejecutar el useEffect con dependencias de los sockets ios')
 
-            const ContactMessageEventFunc = async (message: any) => {
+            const ContactMessageEventFunc = async (message: ContactMessageEventFuncProps) => {
 
+
+                const messageData = message as bodyMessageToShowInView
 
                 // Aqui actualizamos la lista de mensajes del chat
 
+                // esta logica de la condicional se ejecutara siempre que el usuario se encuentre en el area de mensajes recientes 
                 if (isUserInRecentMessagesArea && !contactData.is_blocked && !contactData.contact_user.contact_blocked_you && messagesContainer.current) {
+
+
+
                     setIsUserInRecentMessagesArea(true)
                     messagesContainer.current.scrollTop = messagesContainer.current.scrollHeight
-                    setChatMessages([...chatmessages, message])
+                    setChatMessages([...chatmessages, messageData])
                 }
 
 
-
+                // esta logica de la condicional se ejecutara siempre que el usuario no se encuentre en el area de mensajes recientes 
                 if (!isUserInRecentMessagesArea && chatmessages.length > 0 && !contactData.is_blocked && !contactData.contact_user.contact_blocked_you) {
                     console.log('se esta ejecutando esto igual')
 
@@ -2563,6 +2265,7 @@ const ChatsContent = () => {
                         ...message,
                         user_id: userData.user_id
                     }
+
                     const notificationId = await CreateNewContactChatNotification(notificacionBody)
 
 
@@ -2570,17 +2273,12 @@ const ChatsContent = () => {
 
                     if (numberOfUnreadMessages >= 0 && numberOfUnreadMessagesForIcon >= 0) {
                         //aqui estamos aumentando el valor de numberOfUnreadMessagesForIcon cuando numberOfUnreadMessages ya contenga un valor mayor a cero dentro y luego ese valor se viaulizara como el nuevo valor de mesajes no leidos y en el icono correspondiente 
-
-                        const ValueWhenIsTrue = (prevNumber: any) => (prevNumber + 1)
-
-                        console.log(numberOfUnreadMessagesForIcon)
-
-                        setNumberOfUnreadMessagesForIcon((prevNumber: any) => prevNumber + 1)
+                        setNumberOfUnreadMessagesForIcon((prevNumber) => prevNumber + 1)
                         setNumberOfUnreadMessages(numberOfUnreadMessagesForIcon + 1)
                     }
 
 
-                    let newMessagesList
+                    let newMessagesList: ChatMessages = []
 
                     // aqui validamos si ya ahi un elemento que indica la cantidad de mensajes no leidos en el chat,y que si existe, que no cree mas elementos de notificacion y solo aumente los mensajes despues de ese elemento, esto se logra gracias a que el valor de thereUnreadMessages es inicialmente falso, y cuando este pase a verdadero ya no se agregaran mas elementos de notificacion 
 
@@ -2591,11 +2289,11 @@ const ChatsContent = () => {
                             message_type: 'unreadMessage'
                         }
 
-                        newMessagesList = [...chatmessages, notificacionData, message]
+                        newMessagesList = [...chatmessages, notificacionData, messageData]
 
                     } else {
 
-                        newMessagesList = [...chatmessages, message]
+                        newMessagesList = [...chatmessages, messageData]
 
                     }
 
@@ -2612,16 +2310,19 @@ const ChatsContent = () => {
 
 
 
-            const GroupMessageEventFunc = async (message: any) => {
+            const GroupMessageEventFunc = async (message: GroupMessageEventFuncProps) => {
+
+
+                const messageData = message as bodyMessageToShowInView
 
                 // console.log(isUserInRecentMessagesArea)
                 // Aqui actualizamos la lista de mensajes del chat
 
-
                 if (isUserInRecentMessagesArea && messagesContainer.current) {
+
                     setIsUserInRecentMessagesArea(true)
                     messagesContainer.current.scrollTop = messagesContainer.current.scrollHeight
-                    setChatMessages([...chatmessages, message])
+                    setChatMessages([...chatmessages, messageData])
                 }
 
 
@@ -2644,31 +2345,27 @@ const ChatsContent = () => {
                     if (numberOfUnreadMessages >= 0 && numberOfUnreadMessagesForIcon >= 0) {
                         //aqui estamos aumentando el valor de numberOfUnreadMessagesForIcon cuando numberOfUnreadMessages ya contenga un valor mayor a cero dentro y luego ese valor se viaulizara como el nuevo valor de mesajes no leidos y en el icono correspondiente 
 
-                        const ValueWhenIsTrue = (prevNumber: any) => (prevNumber + 1)
-
-                        console.log(numberOfUnreadMessagesForIcon)
-
-                        setNumberOfUnreadMessagesForIcon((prevNumber: any) => prevNumber + 1)
+                        setNumberOfUnreadMessagesForIcon((prevNumber) => prevNumber + 1)
                         setNumberOfUnreadMessages(numberOfUnreadMessagesForIcon + 1)
                     }
 
 
-                    let newMessagesList
+                    let newMessagesList: ChatMessages = []
 
                     // aqui validamos si ya ahi un elemento que indica la cantidad de mensajes no leidos en el chat,y que si existe, que no cree mas elementos de notificacion y solo aumente los mensajes despues de ese elemento, esto se logra gracias a que el valor de thereUnreadMessages es inicialmente falso, y cuando este pase a verdadero ya no se agregaran mas elementos de notificacion 
 
                     if (!thereUnreadMessages) {
                         setThereUnreadMessages(true)
-                        const notificacionData = {
+                        const notificacionData: notificationBodyInChatMessages = {
                             notification_id: notificationId,
                             message_type: 'unreadMessage'
                         }
 
-                        newMessagesList = [...chatmessages, notificacionData, message]
+                        newMessagesList = [...chatmessages, notificacionData, messageData]
 
                     } else {
 
-                        newMessagesList = [...chatmessages, message]
+                        newMessagesList = [...chatmessages, messageData]
 
                     }
 
@@ -2683,6 +2380,7 @@ const ChatsContent = () => {
 
 
 
+
             if (userData.chat_type === GROUP_CHAT) {
                 socket.on(GROUP_MESSAGE_EVENT, GroupMessageEventFunc)
             } else {
@@ -2693,19 +2391,18 @@ const ChatsContent = () => {
 
 
 
-            const NewMemberGroupFunc = async (newMemberData: any) => {
+            const NewMemberGroupFunc = async (newMemberData: NewMemberGroupFuncProps) => {
 
                 // Region que crear procesa los mensaje para mostrarlos en la vista
                 //#region 
                 console.log(`se esta corriendo el evento ${NEW_GROUP_MEMBER_EVENT}`)
 
                 // aqui voy a obtener todos los participantes del chat y la fecha en la que se unieron al grupo
-                const chatParticipantsList: any = await GetAllChatParticipantsOfGroup(newMemberData.chat_id)
+                const chatParticipantsList = await GetAllChatParticipantsOfGroup(newMemberData.chat_id)
 
-                console.log(chatParticipantsList.chat_participants)
 
                 // aqui filtramos la lista por el user_id de nuevo miembro que se unio al grupo  
-                const participantFound = chatParticipantsList.chat_participants.filter((participant: any) => participant.user_id === newMemberData.user_id)
+                const participantFound = chatParticipantsList.chat_participants.filter((participant) => participant.user_id === newMemberData.user_id)
 
                 //  aqui estamos agregando solo una nueva propiedad que es message_type al objeto del participante obtenido por filtrado, dandole el valor de unionDate, con la finalidad de poder diferenciarlo con los mensaje de tipo texto
 
@@ -2736,17 +2433,7 @@ const ChatsContent = () => {
                     GetAllMembersOfGroup(newMemberData.group_id)
 
                 // aqui estamos mapeando los datos para obtener un nuevo array con el nuevo miembro del grupo y con los status de los miembros actualizado, mas el del nuevo miembro que parecera siempre en inactive  
-                const membersList = membersListObtained.map((member: any,) => {
-                    const participantFound = allParticipantsObtained.filter((participant: any) => member.user.user_id === participant.user_id)
-
-                    if (participantFound) {
-                        return {
-                            ...member,
-                            status: participantFound[0].status
-                        }
-                    }
-                })
-
+                const membersList = AddStatusToTheDataOfEachGroupMember(membersListObtained, allParticipantsObtained)
 
                 // aqui le asignamos el array mapeado a la data de group
                 const groupDataNewObject = {
@@ -2756,7 +2443,7 @@ const ChatsContent = () => {
 
                 console.log(groupDataNewObject)
 
-                setGroupData(groupDataNewObject)
+                dispatch(updateGroupData(groupDataNewObject))
 
 
                 //#endregion
@@ -2767,7 +2454,7 @@ const ChatsContent = () => {
 
 
             // ******** SOCKET PARA EL ESTATUS A ACTIVO DE UN PARTICIPANTE EN UN GROUP CHAT ***********/
-            const AParticipantIsJoinedToGroupChat = async (joinData: any) => {
+            const AParticipantIsJoinedToGroupChat = async (joinData: AParticipantIsJoinedToGroupChatProps) => {
 
                 const membersListObtained = await
                     GetAllMembersOfGroup(groupData.group_id)
@@ -2777,16 +2464,7 @@ const ChatsContent = () => {
                 const allParticipantsObtained = chatParticipants.chat_participants
 
                 // aqui estamos mapeando y filtrando los datos para que se nos devuelva un nuevo array que tenga el estado y el socketid incluido en la data de cada miembro  
-                const membersList = membersListObtained.map((member: any,) => {
-                    const participantFound = allParticipantsObtained.filter((participant: any) => member.user.user_id === participant.user_id)
-
-                    if (participantFound) {
-                        return {
-                            ...member,
-                            status: participantFound[0].status
-                        }
-                    }
-                })
+                const membersList = AddStatusToTheDataOfEachGroupMember(membersListObtained, allParticipantsObtained)
 
 
                 const groupDataNewObject = {
@@ -2795,9 +2473,7 @@ const ChatsContent = () => {
                 }
 
                 console.log(groupDataNewObject.members)
-                setGroupData(groupDataNewObject)
-
-
+                dispatch(updateGroupData(groupDataNewObject))
 
             }
 
@@ -2805,23 +2481,14 @@ const ChatsContent = () => {
 
 
             // ******** SOCKET PARA EL ESTATUS A INACTIVO DE UN PARTICIPANTE EN UN GROUP CHAT ***********/
-            const AParticipantIsUnjoinedToGroupChat = async (unjoinData: any) => {
+            const AParticipantIsUnjoinedToGroupChat = async (unjoinData: AParticipantIsUnjoinedToGroupChatProps) => {
 
                 const chatParticipants = await GetAllChatParticipantsOfGroup(unjoinData.chat_id)
 
                 const allParticipantsObtained = chatParticipants.chat_participants
 
                 // aqui estamos mapeando y filtrando los datos para que se nos devuelva un nuevo array que tenga el estado y el socketid incluido en la data de cada miembro  
-                const membersList = groupData.members.map((member: any,) => {
-                    const participantFound = allParticipantsObtained.filter((participant: any) => member.user.user_id === participant.user_id)
-
-                    if (participantFound) {
-                        return {
-                            ...member,
-                            status: participantFound[0].status
-                        }
-                    }
-                })
+                const membersList =  AddStatusToTheDataOfEachGroupMember(groupData.members, allParticipantsObtained)
 
 
                 const groupDataNewObject = {
@@ -2830,7 +2497,7 @@ const ChatsContent = () => {
                 }
 
                 console.log(groupDataNewObject.members)
-                setGroupData(groupDataNewObject)
+                dispatch(updateGroupData(groupDataNewObject))
 
 
 
@@ -2840,7 +2507,7 @@ const ChatsContent = () => {
 
 
             // ******** SOCKET PARA EL ESTATUS A ACTIVO DE UN PARTICIPANTE EN UN CONTACT CHAT ***********/
-            const AParticipantIsJoinedToContactChat = async (data: any) => {
+            const AParticipantIsJoinedToContactChat = async (data: AParticipantIsJoinedToContactChatProps) => {
 
                 console.log('se ejecuto la funcion AParticipantIsJoinedToContactChat')
 
@@ -2849,7 +2516,7 @@ const ChatsContent = () => {
 
                 console.log(contactsListObtained)
 
-                setContactsList(contactsListObtained)
+                dispatch(updatecontactsList(contactsListObtained))
 
 
                 // aqui obtenemos los datos mas recientes del chat de contacto en el que esta el usuario, esto para evitar obtener datos desactualizados y afectar la logica de la app 
@@ -2857,7 +2524,7 @@ const ChatsContent = () => {
 
 
                 console.log(contactDataObtained)
-                setContactData(contactDataObtained)
+                dispatch(updateContactData(contactDataObtained))
 
 
             }
@@ -2868,14 +2535,12 @@ const ChatsContent = () => {
 
 
             // ******** SOCKET PARA EL ESTATUS A INACTIVO DE UN PARTICIPANTE EN UN CONTACT CHAT ***********/
-            const AParticipantIsUnjoinedToContactChat = async (data: any) => {
-
-
+            const AParticipantIsUnjoinedToContactChat = async (data: AParticipantIsUnjoinedToContactChatProps) => {
 
                 const contactsListObtained = await
                     GetAllContacts()
 
-                setContactsList(contactsListObtained)
+                dispatch(updatecontactsList(contactsListObtained))
 
                 if (data.chat_id === contactData.chat_id) {
                     // aqui obtenemos los datos mas recientes del chat de contacto en el que esta el usuario, esto para evitar obtener datos desactualizados y afectar la logica de la app 
@@ -2883,7 +2548,7 @@ const ChatsContent = () => {
 
 
                     console.log(contactDataObtained)
-                    setContactData(contactDataObtained)
+                    dispatch(updateContactData(contactDataObtained))
                 }
 
             }
@@ -2893,7 +2558,7 @@ const ChatsContent = () => {
 
 
             // ******** SOCKET PARA PASAR UN CONTACTO DE OFFLINE A ONLINE APENA SE CONECTE A LA PAGINA ***********/
-            const AContactIsOnline = async (data: any) => {
+            const AContactIsOnline = async () => {
 
                 // console.log('se ejecuto la funcion AContactIsOnline')
 
@@ -2901,13 +2566,13 @@ const ChatsContent = () => {
                     GetAllContacts()
 
 
-                // setContactsList(contactsListObtained)
+                // dispatch(contactsListObtained)
 
-                const newContactData = contactsListObtained.filter((contact: any) => contact.contact_user.user_id === contactData.contact_user.user_id)
+                const newContactData = contactsListObtained.filter((contact) => contact.contact_user.user_id === contactData.contact_user.user_id)
 
                 // console.log(newContactData[0])
 
-                if (newContactData[0]) setContactData(newContactData[0])
+                if (newContactData[0]) dispatch(updateContactData(newContactData[0]))
 
             }
 
@@ -2916,7 +2581,7 @@ const ChatsContent = () => {
 
 
 
-            const GroupNotificationMessageRecived = async (notificationData: any) => {
+            const GroupNotificationMessageRecived = async (notificationData: GroupNotificationMessageRecivedProps) => {
                 console.log('se activo la funcion NotificationMessageRecived')
 
                 const notificationDataObtained = notificationData.currentNotificationData
@@ -2927,41 +2592,43 @@ const ChatsContent = () => {
 
                 // console.log(userNotificiationsList)
 
-                const groupsObtained: any = await GetAllGroupChats()
+                const groupsObtained = await GetAllGroupChats()
 
                 if (userNotificiationsList.length > 0) {
-                    const groupListModificated = groupsObtained.map((groupData: any) => {
+                    // const groupListModificated = groupsObtained.map((groupData) => {
 
-                        const notificationFound = userNotificiationsList.filter((notification: any) => notification.chat_id === groupData.group.chat_id)
+                    //     const notificationFound = userNotificiationsList.filter((notification) => notification.chat_id === groupData.group.chat_id)
 
-                        console.log(notificationFound)
+                    //     console.log(notificationFound)
 
-                        if (notificationFound) {
+                    //     if (notificationFound) {
 
-                            const notificonsNumber = notificationFound.length
+                    //         const notificonsNumber = notificationFound.length
 
-                            return {
-                                ...groupData,
-                                notifications_number: notificonsNumber
-                            }
-                        }
-
-
-                        return {
-                            ...groupData,
-                            notifications_number: 0
-                        }
+                    //         return {
+                    //             ...groupData,
+                    //             notifications_number: notificonsNumber
+                    //         }
+                    //     }
 
 
-                    })
+                    //     return {
+                    //         ...groupData,
+                    //         notifications_number: 0
+                    //     }
 
-                    // console.log(userNotificiationsList)
-                    // console.log(groupListModificated)
+
+                    // })
+
+                    // // console.log(userNotificiationsList)
+                    // // console.log(groupListModificated)
 
 
-                    const groupListOrdered = groupListModificated.sort((a: any, b: any) => b.notifications_number - a.notifications_number)
+                    // const groupListOrdered = groupListModificated.sort((a: any, b: any) => b.notifications_number - a.notifications_number)
 
-                    setGroupChatsList(groupListOrdered)
+                    const groupListOrdered = ObtainGroupListWithUpdatedNotificationNumber(groupsObtained, userNotificiationsList)
+
+                    dispatch(updateGroupChatList(groupListOrdered))
 
                     return
                 }
@@ -2976,7 +2643,7 @@ const ChatsContent = () => {
 
 
 
-            const ContactNotificationMessageRecived = async (notificationData: any) => {
+            const ContactNotificationMessageRecived = async (notificationData: ContactNotificationMessageRecivedProps) => {
                 console.log('se activo la funcion NotificationMessageRecived')
 
                 const notificationDataObtained = notificationData.currentNotificationData
@@ -2988,41 +2655,43 @@ const ChatsContent = () => {
                 // console.log(userNotificiationsList)
 
 
-                const contactsObtained: any = await GetAllContacts()
+                const contactsObtained = await GetAllContacts()
 
                 if (userNotificiationsList.length > 0) {
-                    const contactListModificated = contactsObtained.map((contactData: any) => {
+                    // const contactListModificated = contactsObtained.map((contactData: any) => {
 
-                        const notificationFound = userNotificiationsList.filter((notification: any) => notification.chat_id === contactData.chat_id)
+                    //     const notificationFound = userNotificiationsList.filter((notification: any) => notification.chat_id === contactData.chat_id)
 
-                        console.log(notificationFound)
+                    //     console.log(notificationFound)
 
-                        if (notificationFound) {
+                    //     if (notificationFound) {
 
-                            const notificonsNumber = notificationFound.length
+                    //         const notificonsNumber = notificationFound.length
 
-                            return {
-                                ...contactData,
-                                notifications_number: notificonsNumber
-                            }
-                        }
-
-
-                        return {
-                            ...contactData,
-                            notifications_number: 0
-                        }
+                    //         return {
+                    //             ...contactData,
+                    //             notifications_number: notificonsNumber
+                    //         }
+                    //     }
 
 
-                    })
+                    //     return {
+                    //         ...contactData,
+                    //         notifications_number: 0
+                    //     }
 
-                    // console.log(userNotificiationsList)
-                    // console.log(contactListModificated)
+
+                    // })
+
+                    // // console.log(userNotificiationsList)
+                    // // console.log(contactListModificated)
 
 
-                    const contactListOrdered = contactListModificated.sort((a: any, b: any) => b.notifications_number - a.notifications_number)
+                    // const contactListOrdered = contactListModificated.sort((a: any, b: any) => b.notifications_number - a.notifications_number)
 
-                    setContactsList(contactListOrdered)
+                    const contactListOrdered = ObtainContactListWithUpdatedNotificationNumber(contactsObtained, userNotificiationsList)
+
+                    dispatch(updatecontactsList(contactListOrdered))
 
                     return
                 }
@@ -3037,29 +2706,20 @@ const ChatsContent = () => {
 
 
 
-            const AParticipantChagedToRoleChat = (memberData: any) => {
+            const AParticipantChagedToRoleChat = (memberData: AParticipantChagedToRoleChatProps) => {
 
                 const memberId = memberData.member_id
 
                 // aqui actualizamos el role del miembro que fue ascendido a admin
-                const memberListUpdated = groupData.members.map((member: any) => {
+                const memberListUpdated = UpdatePromotedMemberRoleToAdmin(groupData, memberId)
 
-                    if (member.user.user_id === memberId) {
-
-                        return { ...member, role: 'admin' }
-
-                    }
-
-                    return member
-                })
-
-
+                // aqui actualizamos la lista de miembros en el datos del grupo
                 const newGroupData = {
                     ...groupData,
                     members: memberListUpdated
                 }
 
-                setGroupData(newGroupData)
+                dispatch(updateGroupData(newGroupData))
 
             }
 
@@ -3067,19 +2727,21 @@ const ChatsContent = () => {
 
 
 
-            const AParticipantWasDeletedByAdminToChat = async (memberDeletedData: any) => {
+            const AParticipantWasDeletedByAdminToChat = async (memberDeletedData: AParticipantWasDeletedByAdminToChatProps) => {
 
+                // aqui filtramos al miembro que fue recientemente eliminado
+                const newMembersList = groupData.members.filter((member) => member.user.user_id !== memberDeletedData.member_id)
 
-                const newMembersList = groupData.members.filter((member: any) => member.user.user_id !== memberDeletedData.member_id)
-
+                // aqui actualizamos la lista de miembros sin el miembro recientemente eleminado en los datos de grupos
                 const groupDataNewObject = {
                     ...groupData,
                     members: newMembersList
                 }
 
                 console.log(groupDataNewObject.members)
-                setGroupData(groupDataNewObject)
+                dispatch(updateGroupData(groupDataNewObject))
 
+                // aqui emitimos un evento para que en el momento de ser eliminado el miembro, si este se encuentra activo en el chat, este sea expulsado automaticamente 
                 if (userData.user_id === memberDeletedData.member_id) {
                     const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -3096,12 +2758,12 @@ const ChatsContent = () => {
             socket.on(A_PARTICIPANT_DELETED_BY_ADMIN_CHAT_EVENT, AParticipantWasDeletedByAdminToChat)
 
 
-            const AParticipantLeftTheGroupToChat = async (memberLeftData: any) => {
+            const AParticipantLeftTheGroupToChat = async (memberLeftData: AParticipantLeftTheGroupToChatProps) => {
 
                 const memberIdLeft = memberLeftData.member_id_Left
 
-
-                const newMembersList = groupData.members.filter((member: any) => member.user.user_id !== memberIdLeft)
+                // aqui filtramos al miembro que dejo el grupo voluntariamente 
+                const newMembersList = groupData.members.filter((member) => member.user.user_id !== memberIdLeft)
 
                 const groupDataNewObject = {
                     ...groupData,
@@ -3109,35 +2771,35 @@ const ChatsContent = () => {
                 }
 
                 console.log(groupDataNewObject.members)
-                setGroupData(groupDataNewObject)
+                dispatch(updateGroupData(groupDataNewObject))
 
             }
 
             socket.on(A_PARTICIPANT_LEFT_THE_GROUP_CHAT_EVENT, AParticipantLeftTheGroupToChat)
 
 
-            const ContactBlockingForNotKnowingTheUser = async (data: any) => {
+            const ContactBlockingForNotKnowingTheUser = async (data: ContactBlockingForNotKnowingTheUserProps) => {
 
                 // aqui obtenemos los datos mas recientes del chat de contacto contacto en el que esta el usuario, ya que el contacto ejecuto un evento de bloqueo a este, y tenemos actulizar los datos para evitar que el contacto o el usuario puedan recibir mensajes
                 const contactDataObtained = await GetContactChatData(data.chat_id, data.contact_user_id)
 
 
                 console.log(contactDataObtained)
-                setContactData(contactDataObtained)
+                dispatch(updateContactData(contactDataObtained))
 
             }
 
             socket.on(BLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT, ContactBlockingForNotKnowingTheUser)
 
 
-            const ContactUnlockUser = async (data: any) => {
+            const ContactUnlockUser = async (data: ContactUnlockUserProps) => {
 
                 // aqui obtenemos los datos mas recientes del chat de contacto contacto en el que esta el usuario, ya que el contacto ejecuto un evento de bloqueo a este, y tenemos actulizar los datos para evitar que el contacto o el usuario puedan recibir mensajes
                 const contactDataObtained = await GetContactChatData(data.chat_id, data.contact_user_id)
 
 
                 console.log(contactDataObtained)
-                setContactData(contactDataObtained)
+                dispatch(updateContactData(contactDataObtained))
 
 
             }
@@ -3146,7 +2808,7 @@ const ChatsContent = () => {
 
 
 
-            const ContactIsInTheRecentMesssagesArea = async (data: any) => {
+            const ContactIsInTheRecentMesssagesArea = async (data: ContactIsInTheRecentMesssagesAreaProps) => {
 
                 //aqui obtenemos el valor si el contacto se encuentra en el area de mesanjes recientes leyendo los mensajes mas reciente para que cuando el usuario mande algun mensaje, esto aprescan automaticamente como leido y si no lo esta en el area, aparescan como ho lo leidos
 
@@ -3156,7 +2818,11 @@ const ChatsContent = () => {
 
                     let messageConversionToTrueCompleted = false
                     // aqui estamos filtrando todos los mnesajes que estan no leidos para despues actulizar su data en la db
-                    const unreadMessagesList = chatmessages.filter((mess: any) => mess.message_type === 'text' && !mess.is_read)
+                    const unreadMessagesList = chatmessages.filter((mess) => {
+                        if ('is_read' in mess) {
+                            return mess.message_type === 'text' && !mess.is_read
+                        }
+                    })
 
                     console.log('aqui los elemento del array  unreadMessagesList')
                     console.log(unreadMessagesList)
@@ -3164,7 +2830,7 @@ const ChatsContent = () => {
                     if (unreadMessagesList.length > 0) {
 
                         // aqui actualizamos la propiedade is_read de cada uno de los mensajes no leidos en la base de datos y los pasamos a true  
-                        unreadMessagesList.forEach(async (mess: any) => {
+                        unreadMessagesList.forEach(async (mess) => {
 
                             const newReadStatus = true
                             const newReadTimestamp = GetCurrentDateString()
@@ -3175,33 +2841,41 @@ const ChatsContent = () => {
                         messageConversionToTrueCompleted = true
                     }
 
-                    const ListChatMessagesUnreaded: any = []
+                    const ListChatMessagesUnreaded: listChatMessagesUnreaded[] = []
 
-                    // aqui estraemos todos los mensajes que no han sido leidos y su indice en el array original de chatmessages 
-                    chatmessages.forEach((mess: any, index: number) => {
+                    // aqui extraemos todos los mensajes que no han sido leidos y su indice en el array original de chatmessages 
+                    chatmessages.forEach((mess, index: number) => {
+                        if ('is_read' in mess) {
 
-                        if (mess.message_type === 'text' && !mess.is_read) {
-                            const messageUpdated = {
-                                message_index: index
+                            if (mess.message_type === 'text' && !mess.is_read) {
+                                const messageUpdated = {
+                                    message_index: index
+                                }
+
+                                ListChatMessagesUnreaded.push(messageUpdated)
+
+                                return
                             }
-
-                            ListChatMessagesUnreaded.push(messageUpdated)
 
                             return
                         }
-
-                        return
-
                     })
 
                     if (ListChatMessagesUnreaded.length > 0 && messageConversionToTrueCompleted) {
 
                         // aqui iteramos cada unos de los mensajes que obtuvimos y cambiamos su propiedad is_read desde del array original chatmessages ubicandolo con el message_index que contiene el indice original de cada mensaje en el array de chatmessages 
-                        ListChatMessagesUnreaded.forEach((mess: any) => {
+                        ListChatMessagesUnreaded.forEach((mess) => {
 
                             const newReadStatus = true
 
-                            chatmessages[mess.message_index].is_read = newReadStatus
+                            if (chatmessages && 'is_read' in chatmessages[mess.message_index]) {
+                                const messageUnread = chatmessages[mess.message_index] as bodyMessageToShowInView
+
+                                messageUnread.is_read = newReadStatus
+
+                                return
+
+                            }
 
                         })
 
@@ -3306,7 +2980,7 @@ const ChatsContent = () => {
 
 
 
-    if (!groupChatsList || !contactsList || !loaderWaitingTime) {
+    if (!groupChatsList || !contactsList || !loaderWaitingTime || !userData.user_id) {
         return (<div className="w-full h-screen flex flex-col justify-center items-center  bg-zinc-900 gap-3 ">{iconsPageLogo[0].icon} <p className="text-white animate-pulse">Chatify</p></div>)
     }
 
@@ -3333,13 +3007,12 @@ const ChatsContent = () => {
         GroupMessageSendingHandle: GroupMessageSendingHandle,
         ContactMessageSendingHandle: ContactMessageSendingHandle,
         message: message,
-        changeValueOfMessage: changeValueOfMessage,
+        changeValueOfMessage: changeValueOfMessage
     }
 
     const propsForMenuChat: PropsForMenuChat = {
         menuOpen: menuOpen,
         isOpenAChat: isOpenAChat,
-        userData: userData,
         OpenCardToSelectOptions: OpenCardToSelectOptions,
         groupChatsList: groupChatsList,
         CloseMenuOpenGroupChatHandler: CloseMenuOpenGroupChatHandler,
@@ -3367,12 +3040,64 @@ const ChatsContent = () => {
         navigationMenuOpen: navigationMenuOpen,
     }
 
+
+    const propsForCommandWindows: PropsForCommandWindows = {
+        isOpenCardToSelectOptions: isOpenCardToSelectOptions,
+        isOpenChannelCreationCard: isOpenChannelCreationCard,
+        isOpenJoinCardToChat: isOpenJoinCardToChat,
+        isOpenAddContactCard: isOpenAddContactCard,
+        wasNewIvitationIdCreated: wasNewIvitationIdCreated,
+        isOpenCardToLeaveToGroup: isOpenCardToLeaveToGroup,
+        OpenCardToCreateChannel: OpenCardToCreateChannel,
+        OpenCardToJoinChannel: OpenCardToJoinChannel,
+        OpenCardToAddContact: OpenCardToAddContact,
+        CloseCardToSelectOptions: CloseCardToSelectOptions,
+        HandlerCreateNewChannel: HandlerCreateNewChannel,
+        formToCreateChannel: formToCreateChannel,
+        CloseCardOfCreateChannel: CloseCardOfCreateChannel,
+        CopyInvitationId: CopyInvitationId,
+        inputOfInvitationId: inputOfInvitationId,
+        invitationId: invitationId,
+        isInvitationIdCopied: isInvitationIdCopied,
+        CloseCardOfInvitationIdCreated: CloseCardOfInvitationIdCreated,
+        HandlerJoinToChannel: HandlerJoinToChannel,
+        formToJoinChannel: formToJoinChannel,
+        setInvitationId: setInvitationId,
+        CloseCardOfJoinToChannel: CloseCardOfJoinToChannel,
+        RegisterNewContact: RegisterNewContact,
+        HandlerSearchNewContacts: HandlerSearchNewContacts,
+        formToCreateNewContact: formToCreateNewContact,
+        searchNewContactValue: searchNewContactValue,
+        listOfNewContactSearched: listOfNewContactSearched,
+        SelectUserForToBeNewContact: SelectUserForToBeNewContact,
+        SearchContactsOnPreviousPage: SearchContactsOnPreviousPage,
+        offsetToSearchNewContacts: offsetToSearchNewContacts,
+        SearchContactsOnNextPage: SearchContactsOnNextPage,
+        userSelectedToBeNewContact: userSelectedToBeNewContact,
+        DeleteContactSelected: DeleteContactSelected,
+        CloseCardOfAddContact: CloseCardOfAddContact,
+        LeaveTheGroup: LeaveTheGroup,
+        CloseLeaveToGroupCard: CloseLeaveToGroupCard,
+        isOpenCardToChangeRoleOfMember: isOpenCardToChangeRoleOfMember,
+        isUserAdminToGroup: isUserAdminToGroup,
+        DeleteMemberOfChat: DeleteMemberOfChat,
+        ConvertMemberToAdmin: ConvertMemberToAdmin,
+        CloseCardOfChangeRoleOfMember: CloseCardOfChangeRoleOfMember,
+        isOpenSettingsOfContactChat: isOpenSettingsOfContactChat,
+        DeleteChatHistory: DeleteChatHistory,
+        UnlockThisContact: UnlockThisContact,
+        BlockThisContact: BlockThisContact,
+        DeleteThisContact: DeleteThisContact,
+        CloseSettingsOfContactChat: CloseSettingsOfContactChat,
+    }
+
     return (
         <div className="w-full h-screen bg-zinc-800 flex flex-col justify-center items-center">
             <div className="w-full h-screen flex flex-row relative md:w-[97%] md:h-[95%]">
+
                 <MenuChat props={propsForMenuChat} />
                 <GroupMenuChat props={propsForGroupChat} />
-                
+
                 <Chat props={propsForChat} />
 
                 {/* icon close */}
@@ -3381,12 +3106,13 @@ const ChatsContent = () => {
                         {iconsForChatsPage[4].icon}</div>
                 </div>
 
+                <Commandwindows props={propsForCommandWindows} />
 
 
                 {/* ************** nos falta implementar estas cards  en la vista y despues empezar con el la logica*/}
                 {/* card para crear o unirse a un chat grupal */}
 
-
+                {/*                 
                 <div className={`${isOpenCardToSelectOptions || isOpenChannelCreationCard || isOpenJoinCardToChat || isOpenAddContactCard || wasNewIvitationIdCreated || isOpenCardToLeaveToGroup ? "" : "hidden"} w-full h-screen fixed flex flex-col justify-center items-center  bg-fixed-for-add-channels z-40`} >
 
                     <div className={`${isOpenCardToSelectOptions ? "" : "hidden"} relative w-[90%] h-72 flex flex-col justify-center items-center gap-5 bg-zinc-950 rounded-xl text-white sm:w-80 md:w-80 `} >
@@ -3490,7 +3216,6 @@ const ChatsContent = () => {
                                 <>
                                     <h4>User Selected</h4>
                                     <div className=" w-full h-15 flex flex-row justify-start items-center gap-3 p-2 bg-zinc-600 rounded-md">
-                                        {/* <Image src={userSelectedToBeNewContact.profile_picture} alt="ContactProfile" width="45" height="45" className="rounded-md" /> */}
                                         <Image loading="eager" src={userSelectedToBeNewContact.profile_picture} alt="ContactProfile" width="45" height="45" className="rounded-md" />
                                         <p>{userSelectedToBeNewContact.username}</p>
                                         <div className="w-7 h-7 flex felx-col justify-center items-center ml-auto rounded-full bg-zinc-700 hover:bg-red-500" onClick={DeleteContactSelected}>
@@ -3526,7 +3251,7 @@ const ChatsContent = () => {
 
                 </div>
 
-                {/* <div className={`${isOpenCardToSelectOptions ? "" : "hidden"} w-full h-screen fixed flex flex-col justify-center items-center  bg-fixed-for-add-channels z-40`}> */}
+
                 <div className={`${isOpenCardToChangeRoleOfMember && isUserAdminToGroup ? "" : "hidden"} w-full h-screen fixed flex flex-col justify-center items-center  bg-fixed-for-add-channels z-40`}>
 
                     <div className={`${isOpenCardToChangeRoleOfMember && isUserAdminToGroup ? "" : "hidden"} relative w-[90%] h-52 flex flex-col justify-center items-center gap-6  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
@@ -3545,8 +3270,6 @@ const ChatsContent = () => {
 
                     <div className={`${isOpenSettingsOfContactChat && userData.chat_type === CONTACT_CHAT ? "" : "hidden"} relative w-[90%] h-64 flex flex-col justify-center items-center py-24 gap-6  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
 
-                        {/* <button onClick={DeleteMemberOfChat} className="w-[65%] py-3 bg-red-500 rounded-lg">Delete Member</button> */}
-
                         <button onClick={DeleteChatHistory} className="w-[65%] py-3 bg-red-500 rounded-lg">Delete Chat History</button>
 
                         <button onClick={contactData.is_blocked ? UnlockThisContact : BlockThisContact} className="w-[65%] py-3 bg-blue-500 rounded-lg">{contactData.is_blocked ? 'Unlock this Contact' : 'Block this Contact'}</button>
@@ -3556,13 +3279,15 @@ const ChatsContent = () => {
                         <div className="absolute w-7 h-8 flex flex-col justify-center items-center top-[9px] right-[5px] text-white z-20 " onClick={CloseSettingsOfContactChat} >{iconsForChatsPage[4].icon}</div>
                     </div>
 
-                </div>
+                </div> */}
 
 
             </div >
         </div>
     )
 
+
+    // #region
 
     // return (
     //     <div className="w-full h-screen bg-zinc-800 flex flex-col justify-center items-center">
@@ -4107,6 +3832,8 @@ const ChatsContent = () => {
     //         </div >
     //     </div>
     // )
+
+    // #endregion
 }
 
 export default ChatsContent

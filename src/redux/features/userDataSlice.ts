@@ -1,25 +1,63 @@
 import { bodyUserData } from "@/components/types";
 import { createSlice } from "@reduxjs/toolkit";
 
-const initialState: bodyUserData = {
-    user_id: '',
-    username: '',
-    name: '...',
-    biography: '...',
-    phone: '...',
-    email: '...',
-    profile_picture: '/',
-    create_at: new Date(),
-    chat_id: '',
-    chat_type: ''
+
+// {
+//     user_id: '',
+//     username: '',
+//     name: '...',
+//     biography: '...',
+//     phone: '...',
+//     email: '...',
+//     profile_picture: '/',
+//     create_at: new Date(),
+//     chat_id: '',
+//     chat_type: ''
+// }
+
+interface initialStateSlice {
+    data: bodyUserData
 }
+
+
+// const initialState: initialStateSlice = {
+//     data: {
+//         user_id: '',
+//         username: '',
+//         name: '...',
+//         biography: '...',
+//         phone: '...',
+//         email: '...',
+//         profile_picture: '/',
+//         create_at: new Date().toISOString(),
+//         chat_id: '',
+//         chat_type: ''
+//     }
+// }
+
+
+const initialState: initialStateSlice = {
+    data: {
+        user_id: '',
+        username: '',
+        name: '...',
+        biography: '...',
+        phone: '...',
+        email: '...',
+        profile_picture: '/',
+        create_at: new Date().toISOString(),
+        chat_id: '',
+        chat_type: ''
+    }
+}
+
 
 export const userDataSlice = createSlice({
     name: 'userData',
     initialState,
     reducers: {
-        updateUserData: (state: any, payload) => {
-            state = payload
+        updateUserData: (state, action) => {
+            state.data = action.payload
         }
     }
 })

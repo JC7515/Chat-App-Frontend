@@ -1,5 +1,7 @@
 'use client'
 import { GetUserData } from "@/helpers"
+import { updateUserData } from "@/redux/features/userDataSlice"
+import { useAppDispatch, useAppSelector } from "@/redux/hooks"
 import { GetUserDataValidated } from "@/utils"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -27,11 +29,14 @@ const ProfileContent = () => {
 
     const router = useRouter()
 
-    const [userData, setUserData] = useState<bodyUserData>(userDataBody)
+
     const [profileEditOn, setProfileEditOn] = useState(false)
 
     const [wasSendEditForm, setWasSendEditForm] = useState(false)
 
+    const userData = useAppSelector(state => state.userDataSlice.data)
+
+    const dispatch = useAppDispatch()
 
     const ProfileEditOnHandler = (): void => {
         if (!profileEditOn) {
@@ -47,20 +52,22 @@ const ProfileContent = () => {
 
 
     useEffect(() => {
-        try {
-            const UserDataFunc = async () => {
+
+        const UserDataFunc = async () => {
+            try {
                 const resp: any = await GetUserData(router)
-                setUserData(resp)
+                dispatch(updateUserData(resp))
 
                 console.log(resp)
+
+            } catch (error) {
+                console.log(error)
+                router.push('/')
             }
-
-            UserDataFunc()
-
-        } catch(err) {
-           console.log(err)
-           router.push('/')
         }
+
+        UserDataFunc()
+
     }, [wasSendEditForm])
 
 

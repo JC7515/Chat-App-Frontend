@@ -1,22 +1,18 @@
-import { contactBody } from "@/components/types";
+import { bodyUserData, contactBody } from "@/components/types";
 import { createSlice } from "@reduxjs/toolkit";
 
 
 interface initialStateSlice {
-    data: contactBody[]
- }
- 
+    data: contactBody
+}
 
-// const initialState: initialStateSlice = {
-//     data: []
-// }
 
 const initialState: initialStateSlice = {
-    data: [{
+    data: {
         contact_id: '',
-        user_id: undefined,
+        user_id: '',
         contact_user: {
-            user_id: undefined,
+            user_id: '',
             socket_id: undefined,
             username: '',
             profile_picture: undefined,
@@ -27,23 +23,22 @@ const initialState: initialStateSlice = {
         chat_id: '',
         is_blocked: undefined,
         is_contact_validated: true,
-        creation_date: undefined,
+        creation_date: '',
         notifications_number: undefined,
     }
-    ]
 }
 
 
-export const contactsListSlice = createSlice({
-    name: 'contactsList',
+export const contactDataSlice = createSlice({
+    name: 'contactData',
     initialState,
     reducers: {
-        updatecontactsList: (state, action) => {
+        updateContactData: (state, action) => {
             state.data = action.payload
         }
     }
 })
 
 
-export const { updatecontactsList } = contactsListSlice.actions
-export default contactsListSlice.reducer 
+export const { updateContactData } = contactDataSlice.actions
+export default contactDataSlice.reducer 

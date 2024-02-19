@@ -1,11 +1,11 @@
 import { ACCESS_TOKEN_NAME, COOKIE_OPTIONS, REFRESH_TOKEN_NAME } from "@/components/forLogin/authCard/AuthCard.data"
-import { bodyUserData } from "@/components/types"
+import { addNewMemberToGroupResponseBody, bodyMessageFromBackendForChat, bodyMessageToShowInView, bodyUserData, contactBody, CookiesBody, createNewGroupResponseBody, groupBody, memberBody, messageBodyForContactSocketEvent, messageBodyForGroupSocketEvent, messagesBodyFromBackend, notificationBody, obtainedChatParticipantsObjectBody, propBodyToAddNewMemberToAGroup, propBodyToCreateANewGroup, validatedEmailUser } from "@/components/types"
 import { CookieSerializer, GetCookieValue } from "@/helpers"
 import { AnyARecord } from "dns"
 import { v4 as uuidv4 } from "uuid"
 
 
-export const GetAllMessagesFromAGroupChat = async (chatId: any, messagesLimit: any, creationDate: any) => {
+export const GetAllMessagesFromAGroupChat = async (chatId: string, messagesLimit: number, creationDate: string) => {
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -24,14 +24,17 @@ export const GetAllMessagesFromAGroupChat = async (chatId: any, messagesLimit: a
             throw data.data // { error: { message: 'error...'} }
         }
 
-        return data.data.messages
+        const messagesList: messagesBodyFromBackend[] = data.data.messages
+
+        return messagesList
+
     } catch (error) {
         throw error
     }
 
 }
 
-export const GetAllMessagesFromAContactChat = async (chatId: any, messagesLimit: any, creationDate: any) => {
+export const GetAllMessagesFromAContactChat = async (chatId: string, messagesLimit: number, creationDate: string) => {
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -50,7 +53,10 @@ export const GetAllMessagesFromAContactChat = async (chatId: any, messagesLimit:
             throw data.data // { error: { message: 'error...'} }
         }
 
-        return data.data.messages
+        const messagesList: messagesBodyFromBackend[] = data.data.messages
+
+        return messagesList
+
     } catch (error) {
         throw error
     }
@@ -58,7 +64,7 @@ export const GetAllMessagesFromAContactChat = async (chatId: any, messagesLimit:
 }
 
 
-export const CreateBlockContact = async (contactUserId: any, blockStatus: any, chatId: any, blockDate: any) => {
+export const CreateBlockContact = async (contactUserId: string, blockStatus: string, chatId: string, blockDate: string | Date) => {
 
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
@@ -102,7 +108,7 @@ export const CreateBlockContact = async (contactUserId: any, blockStatus: any, c
 
 
 
-export const DeleteContactChatHistory = async (chatId: any) => {
+export const DeleteContactChatHistory = async (chatId: string) => {
 
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
@@ -140,7 +146,7 @@ export const DeleteContactChatHistory = async (chatId: any) => {
 }
 
 
-export const DeleteContact = async (chatId: any, contactUserId: any) => {
+export const DeleteContact = async (chatId: string, contactUserId: string) => {
 
     try {
 
@@ -177,7 +183,6 @@ export const DeleteContact = async (chatId: any, contactUserId: any) => {
 
 export const GetUserDataValidated = async () => {
     try {
-
 
         let accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -229,7 +234,9 @@ export const GetUserDataValidated = async () => {
         }
 
         return userdata
+
     } catch (error) {
+        console.log(error)
         throw error
     }
 }
@@ -237,7 +244,7 @@ export const GetUserDataValidated = async () => {
 
 
 
-export const VerifyUserEmailValidationToken = async (token: any) => {
+export const VerifyUserEmailValidationToken = async (token: string) => {
     try {
 
 
@@ -257,18 +264,18 @@ export const VerifyUserEmailValidationToken = async (token: any) => {
 
         const user = data.data
 
-        const userdata: any = {
+        const obtainedEmail: validatedEmailUser = {
             email: user.email
         }
 
-        return userdata
+        return obtainedEmail
     } catch (error) {
         return error
     }
 }
 
 
-export const ResendVerifyEmail = async (emailToResendValidation: any) => {
+export const ResendVerifyEmail = async (emailToResendValidation: string) => {
     try {
 
         const payload = {
@@ -293,7 +300,9 @@ export const ResendVerifyEmail = async (emailToResendValidation: any) => {
             // throw data.data // { error: { message: 'error...'} }
         }
 
-        return data.data.message
+        const resultingMessage: string = data.data.message
+
+        return resultingMessage
 
     } catch (error) {
         throw error
@@ -303,48 +312,55 @@ export const ResendVerifyEmail = async (emailToResendValidation: any) => {
 
 
 export const GetNewAccessToken = async () => {
+    try {
 
-    const refresh_token = GetCookieValue(REFRESH_TOKEN_NAME)
+        const refresh_token = GetCookieValue(REFRESH_TOKEN_NAME)
 
-    if (!refresh_token) return { error: { message: 'the refresh token was not found' } }
+        if (!refresh_token) return { error: { message: 'the refresh token was not found' } }
 
-    const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/auth/newAccessToken`
-    const resp = await fetch(url, {
-        method: 'GET',
-        headers: {
-            'authorization': `Bearer ${refresh_token}`,
+        const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/auth/newAccessToken`
+        const resp = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'authorization': `Bearer ${refresh_token}`,
+            }
+        })
+
+        const data = await resp.json()
+
+        if (data.status === "FAILED") {
+            // si falla la peticion devolveremos el valor de data.data que ese error.message
+            return data.data // { error: { message: 'error...'} }
         }
-    })
 
-    const data = await resp.json()
+        console.log(data.data.access_token)
+        console.log(data.data.refresh_token)
 
-    if (data.status === "FAILED") {
-        // si falla la peticion devolveremos el valor de data.data que ese error.message
-        return data.data // { error: { message: 'error...'} }
+        // Obetenemos los valores de nuestros nuevos access_token y refresh_token
+        const accessTokenValue: string = data.data.access_token
+        const refreshTokenValue: string = data.data.refresh_token
+
+
+        // Lista de cokkies a serializar
+        const listOfNewCookies: CookiesBody[] = [
+            { name: ACCESS_TOKEN_NAME, value: accessTokenValue },
+            { name: REFRESH_TOKEN_NAME, value: refreshTokenValue }
+        ]
+
+        // Serializamos los nuevos token
+        CookieSerializer(listOfNewCookies, COOKIE_OPTIONS)
+
+        return accessTokenValue
+
+    } catch (error) {
+        console.log(error)
+        throw error
     }
 
-    console.log(data.data.access_token)
-    console.log(data.data.refresh_token)
-
-    // Obetenemos los valores de nuestros nuevos access_token y refresh_token
-    const accessTokenValue: string = data.data.access_token
-    const refreshTokenValue: string = data.data.refresh_token
-
-
-    // Lista de cokkies a serializar
-    const listOfNewCookies = [
-        { name: ACCESS_TOKEN_NAME, value: accessTokenValue },
-        { name: REFRESH_TOKEN_NAME, value: refreshTokenValue }
-    ]
-
-    // Serializamos los nuevos token
-    CookieSerializer(listOfNewCookies, COOKIE_OPTIONS)
-
-    return accessTokenValue
 }
 
 
-export const GetlistOfUserByUsername = async (username: any, offset: any, limit: any) => {
+export const GetlistOfUserByUsername = async (username: string, offset: number, limit: number) => {
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -364,7 +380,9 @@ export const GetlistOfUserByUsername = async (username: any, offset: any, limit:
             throw data.data // { error: { message: 'error...'} }
         }
 
-        return data.data.list_usersFound
+        const listOfFoundUsers: bodyUserData[] = data.data.list_usersFound
+
+        return listOfFoundUsers
 
     } catch (error) {
         throw error
@@ -392,7 +410,8 @@ export const GetAllGroupChats = async () => {
             throw data.data // { error: { message: 'error...'} }
         }
 
-        return data.data.groups_list
+        const groups_list: groupBody[] = data.data.groups_list
+        return groups_list
 
     } catch (error) {
         throw error
@@ -401,7 +420,7 @@ export const GetAllGroupChats = async () => {
 }
 
 
-export const GetAllMembersOfGroup = async (groupId: any) => {
+export const GetAllMembersOfGroup = async (groupId: string) => {
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -421,7 +440,39 @@ export const GetAllMembersOfGroup = async (groupId: any) => {
             throw data.data // { error: { message: 'error...'} }
         }
 
-        return data.data.members_list
+        const membersList: memberBody[] = data.data.members_list
+
+        return membersList
+
+    } catch (error) {
+        throw error
+    }
+
+}
+
+export const ValidateMembersOfGroup = async (groupId: string) => {
+    try {
+        const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
+
+        const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/validateMembers/?group_id=${groupId}`
+
+        const resp = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'authorization': `Bearer ${accessToken}`,
+            }
+        })
+
+        const data = await resp.json()
+
+        if (data.status === "FAILED") {
+            // si falla la peticion devolveremos el valor de data.data que ese error.message
+            throw data.data // { error: { message: 'error...'} }
+        }
+
+        const membersList: memberBody[] = data.data.members_list
+
+        return membersList
 
     } catch (error) {
         throw error
@@ -431,7 +482,7 @@ export const GetAllMembersOfGroup = async (groupId: any) => {
 
 
 
-export const GetAllChatParticipantsOfGroup = async (chatId: any) => {
+export const GetAllChatParticipantsOfGroup = async (chatId: string) => {
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -451,7 +502,9 @@ export const GetAllChatParticipantsOfGroup = async (chatId: any) => {
             throw data.data // { error: { message: 'error...'} }
         }
 
-        return data.data
+        const result: obtainedChatParticipantsObjectBody = data.data
+
+        return result
 
     } catch (error) {
         throw error
@@ -461,7 +514,7 @@ export const GetAllChatParticipantsOfGroup = async (chatId: any) => {
 
 
 
-export const GetAllChatParticipantsOfContact = async (chatId: any) => {
+export const GetAllChatParticipantsOfContact = async (chatId: string) => {
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -481,7 +534,9 @@ export const GetAllChatParticipantsOfContact = async (chatId: any) => {
             throw data.data // { error: { message: 'error...'} }
         }
 
-        return data.data
+        const result: obtainedChatParticipantsObjectBody = data.data
+
+        return result
 
     } catch (error) {
         throw error
@@ -490,7 +545,7 @@ export const GetAllChatParticipantsOfContact = async (chatId: any) => {
 }
 
 
-export const CreateNewGroupChatNotification = async (messageData: any) => {
+export const CreateNewGroupChatNotification = async (messageData: messageBodyForGroupSocketEvent) => {
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -524,7 +579,10 @@ export const CreateNewGroupChatNotification = async (messageData: any) => {
             // throw data.data // { error: { message: 'error...'} }
         }
 
-        return data.data.notification_id
+
+        const notificationId: string = data.data.notification_id
+
+        return notificationId
 
     } catch (error) {
         throw error
@@ -533,7 +591,7 @@ export const CreateNewGroupChatNotification = async (messageData: any) => {
 }
 
 
-export const CreateNewContactChatNotification = async (messageData: any) => {
+export const CreateNewContactChatNotification = async (messageData: messageBodyForContactSocketEvent) => {
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -566,7 +624,9 @@ export const CreateNewContactChatNotification = async (messageData: any) => {
             // throw data.data // { error: { message: 'error...'} }
         }
 
-        return data.data.notification_id
+        const notificationId: string = data.data.notification_id
+
+        return notificationId
 
     } catch (error) {
         throw error
@@ -576,7 +636,7 @@ export const CreateNewContactChatNotification = async (messageData: any) => {
 
 
 
-export const DeleteANotification = async (messageData: any) => {
+export const DeleteANotification = async (messageData: bodyMessageToShowInView) => {
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -602,12 +662,12 @@ export const DeleteANotification = async (messageData: any) => {
 
     } catch (error) {
         console.log(error)
-        // throw error
+        throw error
     }
 
 }
 
-export const DeleteAllNotifications = async (chat_id: any) => {
+export const DeleteAllNotifications = async (chat_id: string) => {
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -633,7 +693,7 @@ export const DeleteAllNotifications = async (chat_id: any) => {
 
     } catch (error) {
         console.log(error)
-        // throw error
+        throw error
     }
 
 }
@@ -661,17 +721,19 @@ export const GetAllNotificationsOfUser = async () => {
             throw data.data // { error: { message: 'error...'} }
         }
 
-        return data.data.notifications_list
+        const notificationsList: notificationBody[] = data.data.notifications_list
+
+        return notificationsList
 
     } catch (error) {
-        // throw error
         console.log(error)
+        throw error
     }
 
 }
 
 
-export const GetAllNotificationsOfChat = async (chat_id: any) => {
+export const GetAllNotificationsOfChat = async (chat_id: string) => {
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -692,46 +754,50 @@ export const GetAllNotificationsOfChat = async (chat_id: any) => {
             throw data.data // { error: { message: 'error...'} }
         }
 
-        return data.data.notifications_list
+        const notificationsList: notificationBody[] = data.data.notifications_list
+
+        return notificationsList
+
 
     } catch (error) {
-        // throw error
         console.log(error)
-    }
-
-}
-
-
-export const ChangeStatusToActiveInChat = async (chatId: any) => {
-    try {
-        const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
-
-        const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/groups/chatParticipant/?chat_id=${chatId}`
-
-        const resp = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'authorization': `Bearer ${accessToken}`,
-            }
-        })
-
-        const data = await resp.json()
-
-        if (data.status === "FAILED") {
-            // si falla la peticion devolveremos el valor de data.data que ese error.message
-            throw data.data // { error: { message: 'error...'} }
-        }
-
-        return data.data
-
-    } catch (error) {
         throw error
+        
     }
 
 }
 
 
-export const UpdateSocketIdOfUser = async (socketId: any) => {
+// export const ChangeStatusToActiveInChat = async (chatId: string) => {
+//     try {
+//         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
+
+//         const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/groups/chatParticipant/?chat_id=${chatId}`
+
+//         const resp = await fetch(url, {
+//             method: 'POST',
+//             headers: {
+//                 'authorization': `Bearer ${accessToken}`,
+//             }
+//         })
+
+//         const data = await resp.json()
+
+//         if (data.status === "FAILED") {
+//             // si falla la peticion devolveremos el valor de data.data que ese error.message
+//             throw data.data // { error: { message: 'error...'} }
+//         }
+
+//         return data.data
+
+//     } catch (error) {
+//         throw error
+//     }
+
+// }
+
+
+export const UpdateSocketIdOfUser = async (socketId: string) => {
     try {
 
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
@@ -763,7 +829,7 @@ export const UpdateSocketIdOfUser = async (socketId: any) => {
 
 
 
-export const UpdateStatusOfChatParticipant = async (chatId: any, participantId: any, newStatus: any) => {
+export const UpdateStatusOfChatParticipant = async (chatId: string, participantId: string, newStatus: string) => {
     try {
 
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
@@ -794,7 +860,7 @@ export const UpdateStatusOfChatParticipant = async (chatId: any, participantId: 
 
 
 
-export const ChangeMemberToAdmin = async (userId: any, groupId: any) => {
+export const ChangeMemberToAdmin = async (userId: string, groupId: string) => {
     try {
 
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
@@ -825,7 +891,7 @@ export const ChangeMemberToAdmin = async (userId: any, groupId: any) => {
 
 }
 
-export const DeleteMemberOfGroup = async (userId: any, groupId: any, chatId: any) => {
+export const DeleteMemberOfGroup = async (userId: string, groupId: string, chatId: string) => {
     try {
 
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
@@ -856,7 +922,7 @@ export const DeleteMemberOfGroup = async (userId: any, groupId: any, chatId: any
 }
 
 
-export const PermanentlyDeleteGroup = async (chatId: any, groupId: any) => {
+export const PermanentlyDeleteGroup = async (chatId: string, groupId: string) => {
     try {
 
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
@@ -886,7 +952,7 @@ export const PermanentlyDeleteGroup = async (chatId: any, groupId: any) => {
 
 }
 
-export const CreateNewContact = async (contactUserId: any) => {
+export const CreateNewContact = async (contactUserId: string) => {
     try {
 
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
@@ -943,7 +1009,10 @@ export const GetAllContacts = async () => {
             throw data.data // { error: { message: 'error...'} }
         }
 
-        return data.data.contacts_list
+
+        const contactsList: contactBody[] = data.data.contacts_list
+
+        return contactsList
 
     } catch (error) {
         throw error
@@ -952,7 +1021,7 @@ export const GetAllContacts = async () => {
 }
 
 
-export const GetContactChatData = async (chatId: any, contactUserId: any) => {
+export const GetContactChatData = async (chatId: string, contactUserId: string) => {
     try {
 
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
@@ -974,7 +1043,11 @@ export const GetContactChatData = async (chatId: any, contactUserId: any) => {
             throw data.data // { error: { message: 'error...'} }
         }
 
-        return data.data.contact_data
+
+        const contactData: contactBody = data.data.contact_data
+
+        return contactData
+
 
     } catch (error) {
         throw error
@@ -986,7 +1059,7 @@ export const GetContactChatData = async (chatId: any, contactUserId: any) => {
 
 
 
-export const GetContactBlock = async (contactUserId: any, chatId: any) => {
+export const GetContactBlock = async (contactUserId: string, chatId: string) => {
     try {
 
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
@@ -1008,7 +1081,9 @@ export const GetContactBlock = async (contactUserId: any, chatId: any) => {
             throw data.data // { error: { message: 'error...'} }
         }
 
-        return data.data.is_Contact_Blocked
+        const isContactBlocked: boolean = data.data.is_Contact_Blocked
+
+        return isContactBlocked
 
     } catch (error) {
         throw error
@@ -1018,7 +1093,7 @@ export const GetContactBlock = async (contactUserId: any, chatId: any) => {
 
 
 
-export const UpdateMessageData = async (messageId: any, newReadStatus: any, newReadTimestamp: any) => {
+export const UpdateMessageData = async (messageId: string, newReadStatus: boolean, newReadTimestamp: string | Date) => {
     try {
 
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
@@ -1049,13 +1124,74 @@ export const UpdateMessageData = async (messageId: any, newReadStatus: any, newR
 
 
 
-export const filterItems = (query: any, items: any) => {
+export const filterItems = (query: string, items: any) => {
     if (query === '') {
         return items
     }
 
     return items.filter((item: any) => item.group.group_name.indexOf(query) === 0)
 }
+
+
+export const CreateNewGroup = async (payload: propBodyToCreateANewGroup) => {
+
+    const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
+
+    const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/groups`
+
+    const resp = await fetch(url, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: {
+            'authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+        }
+    })
+
+    const data = await resp.json()
+
+    if (data.data.status === "FAILED") {
+        // si falla la peticion devolveremos el valor de data.data que ese error.message
+        throw data.data.error // { error: { message: 'error...'} }
+    }
+
+    const result: createNewGroupResponseBody = data.data
+
+    return result
+
+}
+
+
+export const AddANewMemberToAGroup = async (payload: propBodyToAddNewMemberToAGroup) => {
+
+
+    const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
+
+    const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/members`
+
+    const resp = await fetch(url, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: {
+            'authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+        }
+    })
+
+    const data = await resp.json()
+
+    if (data.data.status === "FAILED") {
+        // si falla la peticion devolveremos el valor de data.data que ese error.message
+        throw data.data.error // { error: { message: 'error...'} }
+    }
+
+    const result: addNewMemberToGroupResponseBody = data.data
+
+    return result
+
+}
+
+
 
 
 
