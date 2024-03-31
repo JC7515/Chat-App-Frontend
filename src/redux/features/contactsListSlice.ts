@@ -12,24 +12,25 @@ interface initialStateSlice {
 // }
 
 const initialState: initialStateSlice = {
-    data: [{
-        contact_id: '',
-        user_id: undefined,
-        contact_user: {
-            user_id: undefined,
-            socket_id: undefined,
-            username: '',
-            profile_picture: undefined,
-            contact_icon: undefined,
-            status: undefined,
-            contact_blocked_you: undefined
-        },
-        chat_id: '',
-        is_blocked: undefined,
-        is_contact_validated: true,
-        creation_date: undefined,
-        notifications_number: undefined,
-    }
+    data: [
+    //     {
+    //     contact_id: '',
+    //     user_id: undefined,
+    //     contact_user: {
+    //         user_id: '',
+    //         socket_id: undefined,
+    //         username: '',
+    //         profile_picture: undefined,
+    //         contact_icon: undefined,
+    //         status: undefined,
+    //         contact_blocked_you: undefined
+    //     },
+    //     chat_id: '',
+    //     is_blocked: undefined,
+    //     is_contact_validated: true,
+    //     creation_date: '',
+    //     notifications_number: undefined,
+    // }
     ]
 }
 

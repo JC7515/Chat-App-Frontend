@@ -64,12 +64,13 @@ export const GetAllMessagesFromAContactChat = async (chatId: string, messagesLim
 }
 
 
-export const CreateBlockContact = async (contactUserId: string, blockStatus: string, chatId: string, blockDate: string | Date) => {
+export const CreateBlockContact = async (userId: string,contactUserId: string, blockStatus: string, chatId: string, blockDate: string | Date) => {
 
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
         const payload = {
+            userId: userId,
             contactUserId: contactUserId,
             blockStatus: blockStatus,
             chatId: chatId,
@@ -205,6 +206,7 @@ export const GetUserDataValidated = async () => {
         }
 
         const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/auth/profile`
+
         const resp = await fetch(url, {
             method: 'GET',
             headers: {
@@ -395,7 +397,7 @@ export const GetAllGroupChats = async () => {
     try {
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
-        const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/groups/`
+        const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/groups`
         const resp = await fetch(url, {
             method: 'GET',
             headers: {
@@ -762,7 +764,7 @@ export const GetAllNotificationsOfChat = async (chat_id: string) => {
     } catch (error) {
         console.log(error)
         throw error
-        
+
     }
 
 }

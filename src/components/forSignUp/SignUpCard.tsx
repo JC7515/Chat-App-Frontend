@@ -6,29 +6,29 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { iconsEmailVerificationPage } from '../emailVerificationPage/EmailVerification.data'
 import { LimitYear, ShowPassword } from '@/helpers'
+import { FormEvent } from '../types'
 
 
 const SignUpCard = () => {
 
   const router = useRouter()
-  const form: any = useRef()
+  const form = useRef<HTMLFormElement>(null)
 
-  const [failMessage, setFailMessage] = useState('')
+  const [failMessage, setFailMessage] = useState<string>('')
   const [signUpIsLoading, setsignUpIsLoading] = useState<boolean>(false)
 
-  const [inputPasswordStatus, setInputPasswordStatus] = useState('password')
+  const [inputPasswordStatus, setInputPasswordStatus] = useState<string>('password')
 
 
 
 
-
-
-
-  const SendFormDataToBackend = async (e: any) => {
+  const SendFormDataToBackend = async (e: FormEvent) => {
     e.preventDefault()
 
 
     setsignUpIsLoading(true)
+
+    if(!form.current) return
 
     const formData = new FormData(form.current)
     const payload = {
@@ -71,7 +71,12 @@ const SignUpCard = () => {
     console.log('no paso del push')
 
 
-    setFailMessage('')
+    setTimeout(() => {
+      setFailMessage('')
+      setsignUpIsLoading(false)
+      form.current?.reset()
+      router.push('/')
+    }, 1400)
 
   }
 
@@ -116,7 +121,7 @@ const SignUpCard = () => {
         </div>
         <div className="flex gap-2 border-zinc-300 border-2 rounded-md px-3 py-3">
           {iconsForLogin[1].icon}
-          <input className='outline-none' type="date" name="birthday" id="birthday" max="2024-12-31" placeholder="Verify Password" onKeyDown={LimitYear} onBlur={LimitYear} />
+          <input className='outline-none' type="date" name="birthday" id="birthday" max="2024-12-31" onKeyDown={LimitYear} onBlur={LimitYear} />
         </div>
         <div className="flex gap-2 border-zinc-300 border-2 rounded-md px-3 py-3">
           {iconsForLogin[1].icon}

@@ -65,8 +65,8 @@ const SearchBar = ({ chatType }: Props ) => {
 
   return (
     <>
-      <div className="w-full flex flex-row gap-1 p-2 bg-zinc-600 rounded-md">
-        {iconsForChatsPage[1].icon}
+      <div data-testid={`SearchBar${chatType}`} className="w-full flex flex-row gap-1 p-2 bg-zinc-600 rounded-md">
+        <div data-testid="SearchBarIcon">{iconsForChatsPage[1].icon}</div>
         <input className="w-full text-xs bg-transparent outline-none" type="text" placeholder="Search" value={ chatType === CONTACT_CHAT ? contactsListQuery: groupsListQuery} onChange={chatType === CONTACT_CHAT ?FilterContactList : FilterGroupsList} />
       </div>
     </>

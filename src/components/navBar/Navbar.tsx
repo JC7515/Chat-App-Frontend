@@ -8,7 +8,9 @@ import { logoForLogin } from '../logo/Logo.data'
 import { iconsArrowForNav, infoForMenuProfile } from './NavBar.data'
 import { bodyUserData } from '../types'
 import lockImage from '../../../public/lockImage.png'
-import { GetUserData } from '@/helpers'
+import { GetUserData, LogicToLimitAmountOfToastOnScreen, LogOutUser } from '@/helpers'
+import { ErrorToast, LoadingToast, LOG_OUT_FAILURE_ERROR_MESSAGE } from '../forChats/ChatsContent.data'
+import { toast, useToasterStore } from 'react-hot-toast'
 
 const Navbar = () => {
 
@@ -19,7 +21,7 @@ const Navbar = () => {
         biography: '...',
         phone: '...',
         email: '...',
-        profile_picture: undefined,
+        profile_picture: '',
         create_at: new Date(),
         chat_id: '..',
         chat_type: '..'
@@ -29,6 +31,8 @@ const Navbar = () => {
 
     const [menuOpen, setMenuOpen] = useState(false)
     const [userData, setUserData] = useState<bodyUserData>(userDataBody)
+
+    const { toasts } = useToasterStore()
 
 
     const openMenuHandler = () => {
@@ -40,10 +44,43 @@ const Navbar = () => {
     }
 
 
+    const LogOutHandler = async () => {
+
+        try {
+
+            const loadingToast = LoadingToast('Loading', "top-center")
+
+            // aqui retrasamos por un segundo la eliminacion del loading toast, para que no desaparesca tan rapido en la vista
+            await new Promise((resolve) => setTimeout(() => { resolve('') }, 1000))
+
+            LogOutUser()
+
+            toast.dismiss(loadingToast)
+
+            router.push('/')
+  
+        } catch (error: any) {
+            // aqui agregaremos logica de notificaciones toast en caso de error y que no se logre hacer el logOut con exito
+            ErrorToast(LOG_OUT_FAILURE_ERROR_MESSAGE, "top-center")
+            
+        }
+
+
+    }
+
+    useEffect(() => {
+        const TOAST_LIMIT = 2
+
+        LogicToLimitAmountOfToastOnScreen(toasts, TOAST_LIMIT, toast)
+        
+    }, [toasts])
+
+
+
     useEffect(() => {
         try {
             const UserDataFunc = async () => {
-                const resp: any = await GetUserData(router)
+                const resp: any = await GetUserData()
                 setUserData(resp)
 
                 console.log(resp)
@@ -63,7 +100,7 @@ const Navbar = () => {
                 {logoForLogin.icon}
                 <h2 className='flex flex-col justify-center'>DevPros</h2>
             </div>
-            <div className='flex flex-row gap-3' onClick={openMenuHandler} >
+            <button className='flex flex-row items-center gap-3' onClick={openMenuHandler} data-testid="buttonToOpenOptionsList" >
                 {userData.profile_picture && (<>
                     <Image src={!userData.profile_picture ? lockImage : userData.profile_picture} className='rounded-lg' width="40" height="40" alt='profileImage' />
                     <p className=" hidden md:flex md:flex-col md:justify-center">{userData.username}</p>
@@ -79,14 +116,14 @@ const Navbar = () => {
 
                 }</div>
 
-            </div>
+            </button>
             {
                 menuOpen &&
-                <ul className='w-56 absolute top-24 right-5 flex flex-col justify-between items-center gap-1 border-zinc-300 border-2 rounded-xl p-4 bg-white' >
+                <ul className='w-56 absolute top-24 right-5 flex flex-col justify-between items-center gap-1 border-zinc-300 border-2 rounded-xl p-4 bg-white' data-testid="navBarListOptions" >
                     {
                         infoForMenuProfile.map((elem) => {
-                            return elem.funtionLogOut ?
-                                <li key={elem.id} className={elem.class}>{elem.icon}<span>{elem.name}</span></li>
+                            return elem.funtion === 'logOut' ?
+                                <li onClick={LogOutHandler} key={elem.id} className={elem.class}>{elem.icon}<span onClick={LogOutHandler}>{elem.name}</span></li>
                                 :
                                 <Link href={elem.link} className='w-full' ><li key={elem.id} className={elem.class}>{elem.icon}<span>{elem.name}</span></li></Link>
                         })

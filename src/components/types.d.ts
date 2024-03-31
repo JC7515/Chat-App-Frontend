@@ -53,7 +53,10 @@ export interface propsToProfile {
 
 
 
-
+export type bodyAccessTokens = {
+    access_token: string ,
+    refresh_token: string
+}
 
 
 export type bodyUserData = {
@@ -120,7 +123,8 @@ export interface bodyMessageToNotification {
     type: string,
     chatType: string,
     message: string,
-    status: string
+    status: string,
+    wasUserDeletedByHisContact?: boolean
 }
 
 
@@ -227,18 +231,20 @@ export type notificationBodyInChatMessages = {
 
 
 export type contactData = {
-    user_id: string,
+    user_id: string ,
     socket_id: string | undefined,
     username: string,
     profile_picture: string | undefined,
     contact_icon: string | undefined,
     status?: string | undefined,
-    contact_blocked_you?: boolean | undefined
+    contact_blocked_you?: boolean | undefined,
+    contact_has_validated_you?: boolean | undefined,
+    was_User_Deleted_By_His_Contact: boolean
 }
 
 export type contactBody = {
     contact_id: string,
-    user_id?: string,
+    user_id: string,
     contact_user: contactData,
     chat_id: string,
     is_blocked: boolean | undefined,
@@ -329,7 +335,8 @@ export type PropsForMenuChat = {
     lockImage: StaticImageData,
     OpenNavigationMenuHandler: (e) => void,
     navigationMenuOpen: boolean,
-    infoForNavMenuChat: infoForNavMenuChatBody[]
+    infoForNavMenuChat: infoForNavMenuChatBody[],
+    LogOutHandler: () => void
 }
 
 
@@ -347,6 +354,7 @@ export type PropsForGroupChat = {
     isInvitationIdCopied: boolean,
     OpenNavigationMenuHandler: () => void,
     navigationMenuOpen: boolean,
+    LogOutHandler: () => void
 }
 
 
@@ -425,6 +433,7 @@ export type PropsForCommandWindows = {
     BlockThisContact: () => void,
     DeleteThisContact: () => void,
     CloseSettingsOfContactChat: () => void,
+    BlockingForNotKnowingTheUser:() => void,
 }
 
 
@@ -433,6 +442,7 @@ export type PropsForCommandWindows = {
 
 export type infoForNavMenuChatBody = {
     id: string,
+    dataTestId?: string,
     name: string,
     icon: React.ReactElement,
     class: string,
@@ -514,7 +524,7 @@ export type listChatMessagesUnreaded = {
 
 // ********** SECCION DE INTERFACES Y TIPOS PARA PROPS DE FUNCIONES DE CHATCONTENT COMPONENT ********
 
-export type FormEvent = React.FormEvent<HTMLFormElement>
+export type FormEvent = | React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>
 export type InputEvent = | React.ChangeEvent<HTMLInputElement>
 export type EventTypes = | React.MouseEvent<HTMLDivElement> | React.MouseEvent<HTMLImageElement> | React.MouseEvent<HTMLParagraphElement> | React.MouseEvent<HTMLHeadingElement>
 
@@ -625,6 +635,11 @@ export type ContactBlockingForNotKnowingTheUserProps = {
     contact_user_id: string
 }
 
+
+export type ContactDeleteTheUserProps = {
+    chat_id: string,
+    contact_user_id: string
+}
 
 export type ContactUnlockUserProps = {
     chat_id: string,

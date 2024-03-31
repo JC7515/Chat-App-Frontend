@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'react-hot-toast';
 import { Providers } from '@/redux/provider';
+import { useDispatch } from 'react-redux';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,8 +21,8 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          {children}
-          <Toaster position='top-right' toastOptions={{ duration: 3000, }} />
+            {children}
+            <Toaster position='top-right' toastOptions={{ duration: 3000, }} />
         </Providers>
       </body>
     </html>

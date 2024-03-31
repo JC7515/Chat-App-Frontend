@@ -7,7 +7,7 @@ import { SlArrowLeft } from "react-icons/sl";
 import { IoMdArrowDropup } from "react-icons/io";
 import { IoMdArrowDropdown } from "react-icons/io";
 import { RiAccountCircleFill } from "react-icons/ri";
-import { MdGroup } from "react-icons/md";
+import { MdGroup, MdOutlineSupervisedUserCircle } from "react-icons/md";
 import { RiLogoutBoxRLine } from "react-icons/ri";
 import { FaChevronDown } from "react-icons/fa6";
 import { FaUserTie } from "react-icons/fa";
@@ -23,12 +23,15 @@ import myImage from '../../../public/myImage.jpg'
 import { Toaster, toast } from 'react-hot-toast';
 import { Content } from "next/font/google";
 import { infoForNavMenuChatBody } from "../types";
+import { MdSupervisedUserCircle } from "react-icons/md";
+
 
 
 
 export const IS_CONTACT_IN_THE_RECENT_MESSAGES_AREA_EVENT = 'isThe ContactInTheRecentMessagesArea' 
 export const UNLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT = 'unlockExecutedByUserToContact' 
 export const BLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT = 'blockExecutedByUserToContact' 
+export const DELETION_EXECUTED_BY_USER_TO_CONTACT_EVENT = 'deletionExecutedByUserToContact' 
 export const USER_IS_ONLINE_EVENT = 'userIsOnline'
 export const USER_CLOSE_PAGE_EVENT = 'userClosePage'
 export const GROUP_MESSAGE_EVENT = 'groupMessage'
@@ -54,6 +57,8 @@ export const A_ADMIN_HAS_DELETED_YOU_CHAT_EVENT = 'aAdminHasDeletedYouToChat'
 export const A_PARTICIPANT_LEFT_THE_GROUP_CHAT_EVENT = 'aParticipantLeftTheGroupChat'
 export const AUTH_EVENT = 'auth'
 
+
+export const LOG_OUT_FAILURE_ERROR_MESSAGE = 'There was a problem logging out, please try again.'
 
 
 
@@ -216,7 +221,10 @@ export const iconsForChatsPage = [
         id: '12',
         icon: <CgBlock  size="22" color="red" />,
     },
-
+    {
+        id: '13',
+        icon: <MdSupervisedUserCircle  size="22" color="white" />,
+    },
 ]
 
 
@@ -413,6 +421,7 @@ export const iconsArrowForNavMenuChats = [
 export const infoForNavMenuChat: infoForNavMenuChatBody[] = [
     {
         id: "0",
+        dataTestId: 'ButtonMiProfile',
         name: 'My profile',
         icon: <RiAccountCircleFill size="23" />,
         class: 'w-full flex flex-row py-3 px-2 rounded-lg gap-3 hover:bg-zinc-700',
@@ -420,6 +429,7 @@ export const infoForNavMenuChat: infoForNavMenuChatBody[] = [
     },
     {
         id: "1",
+        dataTestId: 'ButtonGroupChat',
         name: 'Group Chat',
         icon: <MdGroup size="23" />,
         class: 'w-full flex flex-row py-3 px-2 rounded-lg gap-3 hover:bg-zinc-700',
@@ -427,6 +437,7 @@ export const infoForNavMenuChat: infoForNavMenuChatBody[] = [
     },
     {
         id: "2",
+        dataTestId: 'ButtonLogout',
         name: 'Logout',
         icon: <RiLogoutBoxRLine size="23" color="red " />,
         class: 'w-full flex flex-row px-3 pt-7 pb-3 rounded-lg rounded-t-none  gap-3 mt-3 border-zinc-400 border-t hover:bg-red-400',

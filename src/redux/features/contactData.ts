@@ -9,16 +9,17 @@ interface initialStateSlice {
 
 const initialState: initialStateSlice = {
     data: {
-        contact_id: '',
         user_id: '',
+        contact_id: '',
         contact_user: {
             user_id: '',
             socket_id: undefined,
             username: '',
             profile_picture: undefined,
-            contact_icon: undefined,
+            contact_icon: '',
             status: undefined,
-            contact_blocked_you: undefined
+            contact_blocked_you: undefined,
+            was_User_Deleted_By_His_Contact: false
         },
         chat_id: '',
         is_blocked: undefined,

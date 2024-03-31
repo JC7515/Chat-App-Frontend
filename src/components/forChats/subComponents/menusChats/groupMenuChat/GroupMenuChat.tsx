@@ -18,10 +18,10 @@ const GroupMenuChat: React.FC<Props> = ({ props }) => {
           {/* chat de grupos */}
           <div className="w-full flex flex-col [grid-area:channels]  justify-start items-start gap-2">
             <div className="w-full h-16 flex flex-row justify-start items-center gap-4 border-b-4 pl-3 pr-5 border-zinc-950 shadow drop-shadow-xl" >
-              <div className="w-6 h-6 flex flex-col justify-center items-center" onClick={props.BackToMenuHandler}>{iconsForChatsPage[5].icon}</div>
+              <div className="w-6 h-6 flex flex-col justify-center items-center"  onClick={props.BackToMenuHandler}>{iconsForChatsPage[5].icon}</div>
               <h1 className="font-semibold">All Channels</h1>
 
-              <div className="w-6 h-6 flex felx-col justify-center items-center ml-auto rounded-full hover:bg-red-500" onClick={props.OpenLeaveToGroupCard}>{iconsForChatsPage[10].icon}</div>
+              <button className="w-6 h-6 flex felx-col justify-center items-center ml-auto rounded-full hover:bg-red-500" onClick={props.OpenLeaveToGroupCard} data-testid='LeaveGroupButtonOnGroupMenu' >{iconsForChatsPage[10].icon}</button>
             </div>
 
             <div className="w-full flex flex-col justify-between items-start gap-7 pl-7 pr-5 ">
@@ -87,7 +87,7 @@ const GroupMenuChat: React.FC<Props> = ({ props }) => {
                 {
                   infoForNavMenuChat.map((elem: any) => {
                     return elem.funtionLogOut ?
-                      <li key={elem.id} className={elem.class}>{elem.icon}<span>{elem.name}</span></li>
+                      <li onClick={props.LogOutHandler} key={elem.id} className={elem.class}>{elem.icon}<span onClick={props.LogOutHandler}>{elem.name}</span></li>
                       :
                       <Link href={elem.link} className='w-full' ><li key={elem.id} className={elem.class}>{elem.icon}<span>{elem.name}</span></li></Link>
                   })

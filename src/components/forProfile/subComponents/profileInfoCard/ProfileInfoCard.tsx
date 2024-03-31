@@ -25,9 +25,9 @@ const ProfileInfoCard: React.FC<propsToProfile> = ({ ProfileEditOnHandler, userD
                         <h2 className="text-3xl font-normal" >Profile</h2>
                         <p className="text-zinc-500 text-sm" >Some info may be visible to other people</p>
                     </div>
-                    <div className=" h-12 flex flex-row justify-center items-center border-zinc-400 border-2 rounded-2xl px-10  hover:bg-zinc-200" onClick={ProfileEditOnHandler}>
+                    <button className=" h-12 flex flex-row justify-center items-center border-zinc-400 border-2 rounded-2xl px-10  hover:bg-zinc-200" onClick={ProfileEditOnHandler}>
                         <p className="text-zinc-500">Edit</p>
-                    </div>
+                    </button>
                 </div>
 
 

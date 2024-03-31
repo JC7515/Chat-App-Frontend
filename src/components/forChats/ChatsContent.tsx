@@ -5,12 +5,12 @@ import Image from "next/image"
 import Link from "next/link"
 import { toast, useToasterStore } from "react-hot-toast"
 import { useRef, useEffect, useState } from "react"
-import { A_ADMIN_HAS_DELETED_YOU_CHAT_EVENT, A_PARTICIPANT_CHANGED_TO_ROLE_EVENT, A_PARTICIPANT_DELETED_BY_ADMIN_CHAT_EVENT, A_PARTICIPANT_JOINED_THE_CONTACT_CHAT_EVENT, A_PARTICIPANT_JOINED_THE_GROUP_CHAT_EVENT, A_PARTICIPANT_LEFT_THE_GROUP_CHAT_EVENT, A_PARTICIPANT_UNJOINED_TO_CONTACT_CHAT_EVENT, A_PARTICIPANT_UNJOINED_TO_GROUP_CHAT_EVENT, BLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT, chatMessages, CONTACT_CHAT, CONTACT_MESSAGE_EVENT, CONTACT_NOTIFICATION_MESSAGE_EVENT, ErrorToast, GET_USER_SOCKET_ID_EVENT, GROUP_CHAT, GROUP_MESSAGE_EVENT, GROUP_NOTIFICATION_MESSAGE_EVENT, iconsForChatsPage, iconsPageLogo, infoForNavMenuChat, IS_CONTACT_IN_THE_RECENT_MESSAGES_AREA_EVENT, LoadingToast, NEW_GROUP_MEMBER_EVENT, NotificationToast, SuccessToast, UNLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT, USER_IS_ONLINE_EVENT } from "./ChatsContent.data"
+import { A_ADMIN_HAS_DELETED_YOU_CHAT_EVENT, A_PARTICIPANT_CHANGED_TO_ROLE_EVENT, A_PARTICIPANT_DELETED_BY_ADMIN_CHAT_EVENT, A_PARTICIPANT_JOINED_THE_CONTACT_CHAT_EVENT, A_PARTICIPANT_JOINED_THE_GROUP_CHAT_EVENT, A_PARTICIPANT_LEFT_THE_GROUP_CHAT_EVENT, A_PARTICIPANT_UNJOINED_TO_CONTACT_CHAT_EVENT, A_PARTICIPANT_UNJOINED_TO_GROUP_CHAT_EVENT, BLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT, chatMessages, CONTACT_CHAT, CONTACT_MESSAGE_EVENT, CONTACT_NOTIFICATION_MESSAGE_EVENT, DELETION_EXECUTED_BY_USER_TO_CONTACT_EVENT, ErrorToast, GET_USER_SOCKET_ID_EVENT, GROUP_CHAT, GROUP_MESSAGE_EVENT, GROUP_NOTIFICATION_MESSAGE_EVENT, iconsForChatsPage, iconsPageLogo, infoForNavMenuChat, IS_CONTACT_IN_THE_RECENT_MESSAGES_AREA_EVENT, LoadingToast, LOG_OUT_FAILURE_ERROR_MESSAGE, NEW_GROUP_MEMBER_EVENT, NotificationToast, SuccessToast, UNLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT, USER_IS_ONLINE_EVENT } from "./ChatsContent.data"
 import io, { Socket } from "socket.io-client";
-import { AParticipantChagedToRoleChatProps, AParticipantIsJoinedToContactChatProps, AParticipantIsJoinedToGroupChatProps, AParticipantIsUnjoinedToContactChatProps, AParticipantIsUnjoinedToGroupChatProps, AParticipantLeftTheGroupToChatProps, AParticipantWasDeletedByAdminToChatProps, bodyMessageToBacked, bodyMessageToShowInView, bodyUserData, ChatMessages, chatParticipantBody, ContactBlockingForNotKnowingTheUserProps, contactBody, ContactIsInTheRecentMesssagesAreaProps, ContactMessageEventFuncProps, ContactNotificationMessageRecivedProps, ContactUnlockUserProps, EventTypes, FormEvent, groupBody, GroupMessageEventFuncProps, GroupNotificationMessageRecivedProps, HandlerOfUserSocketIdUpdatedPayload, InputEvent, listChatMessagesUnreaded, memberBody, messageIssueDateBody, messagesBodyFromBackend, NewMemberGroupFuncProps, notificationBody, notificationBodyInChatMessages, obtainedChatParticipantsObjectBody, PropsForChat, PropsForCommandWindows, PropsForGroupChat, PropsForMenuChat } from "../types"
+import { AParticipantChagedToRoleChatProps, AParticipantIsJoinedToContactChatProps, AParticipantIsJoinedToGroupChatProps, AParticipantIsUnjoinedToContactChatProps, AParticipantIsUnjoinedToGroupChatProps, AParticipantLeftTheGroupToChatProps, AParticipantWasDeletedByAdminToChatProps, bodyMessageToBacked, bodyMessageToShowInView, bodyUserData, ChatMessages, chatParticipantBody, ContactBlockingForNotKnowingTheUserProps, contactBody, ContactDeleteTheUserProps, ContactIsInTheRecentMesssagesAreaProps, ContactMessageEventFuncProps, ContactNotificationMessageRecivedProps, ContactUnlockUserProps, EventTypes, FormEvent, groupBody, GroupMessageEventFuncProps, GroupNotificationMessageRecivedProps, HandlerOfUserSocketIdUpdatedPayload, InputEvent, listChatMessagesUnreaded, memberBody, messageIssueDateBody, messagesBodyFromBackend, NewMemberGroupFuncProps, notificationBody, notificationBodyInChatMessages, obtainedChatParticipantsObjectBody, PropsForChat, PropsForCommandWindows, PropsForGroupChat, PropsForMenuChat } from "../types"
 import Message from "./subComponents/message/Message"
 import { v4 as uuidv4 } from 'uuid'
-import { AddNotificationsToContactList, AddNotificationsToGroupList, AddStatusToTheDataOfEachGroupMember, ConvertBackendMessageBodyToViewableMessages, ConvertDateToDayFormat, ConvertDateToHourFormat, FilterUserAndContactsFromContactSearchList, GenerateMessageObjectToBackend, GenerateMessageObjectToNotification, GenerateMessageObjectToView, GetContactDetailsFromContactList, GetCookieValue, GetCurrentDateString, GetListOfMembersWithUpdatedMemberRole, GetListOfMembersWithUpdatedStatuses, GetListOfMessagesWithIssueDate, GetListOfOldMessagesWithIssueDate, GetMemberListWithoutRecentlyRemovedMember, ObtainContactListWithUpdatedNotificationNumber, ObtainGroupListWithUpdatedNotificationNumber, TransformDateToCorrectFormatString, TransformDateToEmitionDate, UpdateContactList, UpdateGroupList, UpdatePromotedMemberRoleToAdmin, ValidateIfTheMemberIsAnAdministrator, ValidateIfTheUserIsAnAdministrator, ValidateIfUserExistsInGroup } from "@/helpers"
+import { AddNotificationsToContactList, AddNotificationsToGroupList, AddStatusToTheDataOfEachGroupMember, ConvertBackendMessageBodyToViewableMessages, ConvertDateToDayFormat, ConvertDateToHourFormat, FilterUserAndContactsFromContactSearchList, GenerateMessageObjectToBackend, GenerateMessageObjectToNotification, GenerateMessageObjectToView, GetContactDetailsFromContactList, GetCookieValue, GetCurrentDateString, GetListOfMembersWithUpdatedMemberRole, GetListOfMembersWithUpdatedStatuses, GetListOfMessagesWithIssueDate, GetListOfOldMessagesWithIssueDate, GetMemberListWithoutRecentlyRemovedMember, LogicToLimitAmountOfToastOnScreen, LogOutUser, ObtainContactListWithUpdatedNotificationNumber, ObtainGroupListWithUpdatedNotificationNumber, TransformDateToCorrectFormatString, TransformDateToEmitionDate, UpdateContactList, UpdateGroupList, UpdatePromotedMemberRoleToAdmin, ValidateIfTheMemberIsAnAdministrator, ValidateIfTheUserIsAnAdministrator, ValidateIfUserExistsInGroup } from "@/helpers"
 import { ACCESS_TOKEN_NAME } from "../forLogin/authCard/AuthCard.data"
 import { useRouter } from "next/navigation"
 import { AddANewMemberToAGroup, ChangeMemberToAdmin, CreateBlockContact, CreateNewContact, CreateNewContactChatNotification, CreateNewGroup, CreateNewGroupChatNotification, DeleteAllNotifications, DeleteContact, DeleteContactChatHistory, DeleteMemberOfGroup, GetAllChatParticipantsOfGroup, GetAllContacts, GetAllGroupChats, GetAllMembersOfGroup, GetAllMessagesFromAContactChat, GetAllMessagesFromAGroupChat, GetAllNotificationsOfUser, GetContactChatData, GetlistOfUserByUsername, GetUserDataValidated, PermanentlyDeleteGroup, UpdateMessageData, UpdateStatusOfChatParticipant, ValidateMembersOfGroup } from "@/utils"
@@ -28,6 +28,7 @@ import { updateContactData } from "@/redux/features/contactData"
 import { updateGroupData } from "@/redux/features/groupData"
 import { updateUserData } from "@/redux/features/userDataSlice"
 import { type } from "os"
+import { f } from "msw/lib/core/HttpResponse-_514VQ9z"
 
 const socket = io(`${process.env.NEXT_PUBLIC_API_URL_DEV}`, { autoConnect: false })
 
@@ -980,11 +981,20 @@ const ChatsContent = () => {
 
 
     const CloseMenuOpenGroupChatHandler = async (e: EventTypes) => {
+
         if ('id' in e.target) {
+
 
             if (!isOpenAChat && menuOpen || userData.chat_type === CONTACT_CHAT) {
 
+                console.log('Se ejecuto funcion CloseMenuOpenGroupChatHandler')
+
+
+                console.log('chat_type')
+                console.log(userData.chat_type)
+
                 if (userData.chat_type === CONTACT_CHAT) {
+
 
                     const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
@@ -1020,7 +1030,7 @@ const ChatsContent = () => {
                 const groupId: string = EventTarget
 
                 console.log(groupId)
-                const groupDataFiltered = groupChatsList.filter((elem: any) => elem.group.group_id === groupId)
+                const groupDataFiltered = groupChatsList.filter((elem) => elem.group.group_id === groupId)
                 const groupDataSelected = groupDataFiltered[0].group
 
                 setInvitationId(groupDataSelected.invitation_id)
@@ -1058,6 +1068,7 @@ const ChatsContent = () => {
                 const chatType = GROUP_CHAT
                 //Aqui actualizamos las propiedades chat_type y chat_id del usuario despues de haber saltado a otro chat 
                 UpdatechatDataInUserData(chatIdValue, chatType)
+
 
 
 
@@ -1121,6 +1132,9 @@ const ChatsContent = () => {
         // aqui estamos obteniendo la data del chat de contacto seleccionado
         const contactDataSelected = GetContactDetailsFromContactList(contactsList, chatId)
 
+        // aqui obtenemos los datos mas recientes del chat de contacto contacto que esta seleccionando el usuario, esto para evitar obtener datos desactualizados y afectar la logica de la app 
+        const contactDataObtained = await GetContactChatData(contactDataSelected.chat_id, contactDataSelected.contact_user.user_id)
+
 
 
         console.log(contactDataSelected)
@@ -1135,7 +1149,7 @@ const ChatsContent = () => {
 
         const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
-        socket.emit(A_PARTICIPANT_JOINED_THE_CONTACT_CHAT_EVENT, { authToken: `Bearer ${accessToken}`, chatId: userData.chat_id, contactSocketId: contactData.contact_user.socket_id })
+        socket.emit(A_PARTICIPANT_JOINED_THE_CONTACT_CHAT_EVENT, { authToken: `Bearer ${accessToken}`, chatId: userData.chat_id, contactSocketId: contactDataObtained.contact_user.socket_id })
 
 
         /* *********** aqui actualizamos los valores de las propiedades de la variable UserData *************  */
@@ -1146,9 +1160,6 @@ const ChatsContent = () => {
         //Aqui actualizamos las propiedades chat_type y chat_id del usuario despues de haber saltado a otro chat 
         UpdatechatDataInUserData(chatIdValue, chatType)
 
-
-        // aqui obtenemos los datos mas recientes del chat de contacto contacto que esta seleccionando el usuario, esto para evitar obtener datos desactualizados y afectar la logica de la app 
-        const contactDataObtained = await GetContactChatData(contactDataSelected.chat_id, contactDataSelected.contact_user.user_id)
 
 
         console.log(contactDataSelected)
@@ -1517,7 +1528,7 @@ const ChatsContent = () => {
             const blockStatus = 'active'
             const blockDate = GetCurrentDateString()
 
-            await CreateBlockContact(contactData.contact_user.user_id, blockStatus, contactData.chat_id, blockDate)
+            await CreateBlockContact(contactData.user_id, contactData.contact_user.user_id, blockStatus, contactData.chat_id, blockDate)
 
 
             // aqui estamos actualizando la data de chat de contacto y actualizando el valor de la proppiedad is_blocked a true, para que en la vista del chat se visualize al contacto como bloqueado al instante  
@@ -1574,13 +1585,13 @@ const ChatsContent = () => {
             const blockStatusInactive = 'inactive'
             const blockDate = GetCurrentDateString()
 
-            await CreateBlockContact(contactData.contact_user.user_id, blockStatusInactive, contactData.chat_id, blockDate)
+            await CreateBlockContact(contactData.user_id, contactData.contact_user.user_id, blockStatusInactive, contactData.chat_id, blockDate)
 
             //aqui estamos registrando un bloqueo activo del contacto que le escribio al usuario, para que este contacto no puede enviarle mas mensajes     
 
             const blockStatusActive = 'active'
 
-            await CreateBlockContact(contactData.contact_user.user_id, blockStatusActive, contactData.chat_id, blockDate)
+            await CreateBlockContact(contactData.user_id, contactData.contact_user.user_id, blockStatusActive, contactData.chat_id, blockDate)
 
             // // aqui estamos actualizando la data de chat de contacto y actualizando el valor de la proppiedad is_blocked a true, para que en la vista del chat se visualize al contacto como bloqueado al instante  
             // const contactDataUpdated = { ...contactData, is_blocked: true }
@@ -1631,7 +1642,7 @@ const ChatsContent = () => {
 
             const creationDateOfContact = contactData.creation_date
 
-            await CreateBlockContact(contactData.contact_user.user_id, blockStatus, contactData.chat_id, creationDateOfContact)
+            await CreateBlockContact(contactData.user_id, contactData.contact_user.user_id, blockStatus, contactData.chat_id, creationDateOfContact)
 
 
             // aqui obtenemos los datos mas recientes del chat de contacto del usuario, para que no haya ningun error  
@@ -1692,6 +1703,8 @@ const ChatsContent = () => {
 
     const DeleteThisContact = async () => {
         try {
+
+
             // aqui notificacion que indica al usuario que la accion se esta procesando
             const loadingToast = LoadingToast('Delete This Contact', "top-center")
 
@@ -1700,25 +1713,80 @@ const ChatsContent = () => {
             await new Promise((resolve) => setTimeout(() => { resolve('') }, 1000))
 
 
+            // LOGICA EN CASO DE QUE UNO DE LOS DOS USUARIOS DEL CHAT DE CONTACTO NO SE HAYAN VALIDADO AUN, PERO UNO IGUAL DECIDA ELIMINARLO COMO CONTACTO, ESTO CON EL FIN DE EVITAR ERRORES 
+
+            //  A)
+            // aqui agregamos un block inactive en caso de que el usuario que va a elminar este contacto no haya validado aun al contacto, pero igual desea eleminarlo
+            if (contactData.is_contact_validated && !contactData.contact_user.contact_has_validated_you) {
+
+
+                const blockStatus = 'inactive'
+                const blockDate = GetCurrentDateString()
+
+                // *************************
+                await CreateBlockContact(contactData.contact_user.user_id, contactData.user_id, blockStatus, contactData.chat_id, blockDate)
+
+            }
+
+
+            //  B)
+            // aqui agregamos un block inactive en caso de que el usuario que va a elminar este contacto no lo hayan validado aun como contacto
+            if (!contactData.is_contact_validated && contactData.contact_user.contact_has_validated_you) {
+
+                const blockStatus = 'inactive'
+                const blockDate = GetCurrentDateString()
+
+                await CreateBlockContact(contactData.user_id, contactData.contact_user.user_id, blockStatus, contactData.chat_id, blockDate)
+
+            }
+
+
+            
+            const newStatusValue = 'inactive'
+
+            // aqui estamos cambiando el status de esta usuario para su chat de contacto a inactivo, antes de cambiar al chat de grupo
+            await UpdateStatusOfChatParticipant(contactData.chat_id, userData.user_id, newStatusValue)
+
             // aqui eliminamos el contacto de usuario
             await DeleteContact(contactData.chat_id, contactData.contact_user.user_id)
+
+           
+            setIsContactInRecentMessagesArea(false)
 
             // aqui integramos una emicion de socket id, para que cada vez que se elimine un contacto se actualize la lista de contactos del usuario
             const contactsList = await GetAllContacts()
 
             toast.dismiss(loadingToast)
 
+        
+            // aqui emitimos un evento para que en el contacto, le aparesca que este usuario lo ah eliminado de su lista de contactos y este no lo pueda visualizar
+            const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
+
+
+            socket.emit(A_PARTICIPANT_UNJOINED_TO_CONTACT_CHAT_EVENT, { authToken: `Bearer ${accessToken}`, chatId: userData.chat_id, contactSocketId: contactData.contact_user.socket_id })
+
+            socket.emit(IS_CONTACT_IN_THE_RECENT_MESSAGES_AREA_EVENT, { authToken: `Bearer ${accessToken}`, chatId: contactData.chat_id, is_user_in_recent_messages_area: false })
+
+            socket.emit(DELETION_EXECUTED_BY_USER_TO_CONTACT_EVENT, { authToken: `Bearer ${accessToken}`, chatId: contactData.chat_id, contact_user_socket_id: contactData.contact_user.socket_id })
+
+
+            CloseSettingsOfContactChat()
+
             dispatch(updatecontactsList(contactsList))
             dispatch(updateContactData(contactBody))
             setChatMessages([])
-
-            CloseSettingsOfContactChat()
+            
 
             const chatIdValue = ''
             const chatType = ''
 
             //Aqui actualizamos las propiedades chat_type y chat_id del usuario despues de haber el contacto 
             UpdatechatDataInUserData(chatIdValue, chatType)
+
+
+            // aqui indicamos que una vez se eleimine en contacto y su chat, la variable IsOpenAChat estara en falso y el meno abierto como por defecto cuando el usuario ingresa recien a la pagina, y esto para evitar que no haya problemas con abrir los chats de grupo si lo el usuario lo desea
+            setIsOpenAChat(false)
+            setMenuOpen(true)
 
 
             // aqui notificacion que indica al usuario que la accion se realizo con exito
@@ -1754,7 +1822,7 @@ const ChatsContent = () => {
             const blockStatus = 'inactive'
             const blockDate = GetCurrentDateString()
 
-            await CreateBlockContact(contactData.contact_user.user_id, blockStatus, contactData.chat_id, blockDate)
+            await CreateBlockContact(contactData.user_id, contactData.contact_user.user_id, blockStatus, contactData.chat_id, blockDate)
 
 
 
@@ -1788,6 +1856,31 @@ const ChatsContent = () => {
             // aqui agregaremos logica de notificaciones toast en caso de error
             ErrorToast(error.error?.message || error.error, "top-center")
         }
+
+    }
+
+    const LogOutHandler = async () => {
+
+        try {
+
+            const loadingToast = LoadingToast('Loading', "top-center")
+
+            // aqui retrasamos por un segundo la eliminacion del loading toast, para que no desaparesca tan rapido en la vista
+            await new Promise((resolve) => setTimeout(() => { resolve('') }, 1000))
+
+
+            LogOutUser()
+
+            toast.dismiss(loadingToast)
+
+            router.push('/')
+
+        } catch (error: any) {
+            // aqui agregaremos logica de notificaciones toast en caso de error y que no se logre hacer el logOut con exito
+            ErrorToast(LOG_OUT_FAILURE_ERROR_MESSAGE, "top-center")
+
+        }
+
 
     }
 
@@ -1947,12 +2040,8 @@ const ChatsContent = () => {
         const RunAllFunc = async () => {
             try {
 
-                const resp = await GetUserData(router)
+                const resp = await GetUserData()
                 dispatch(updateUserData(resp))
-
-                console.log(resp)
-                console.log(userData)
-
 
 
                 // Aqui estamos validando que ancgo de la pagina se mayor que 768 para que cuando el usuario este en dispositivos como laptops el menu del chat deje de estar en absolute y no se oculte
@@ -2011,13 +2100,14 @@ const ChatsContent = () => {
                 const notificationsObtained = await GetAllNotificationsOfUser()
 
 
-                console.log(notificationsObtained)
 
                 const groupsObtained = await GetAllGroupChats()
                 const contactsObtained = await GetAllContacts()
 
-
                 console.log(groupsObtained)
+                console.log(contactsObtained)
+
+
                 // aqui estamos agregando el numero de notificaciones que tiene sin leer el usuario a cada grupo o chat de contacto  
                 if (notificationsObtained) {
 
@@ -2488,7 +2578,7 @@ const ChatsContent = () => {
                 const allParticipantsObtained = chatParticipants.chat_participants
 
                 // aqui estamos mapeando y filtrando los datos para que se nos devuelva un nuevo array que tenga el estado y el socketid incluido en la data de cada miembro  
-                const membersList =  AddStatusToTheDataOfEachGroupMember(groupData.members, allParticipantsObtained)
+                const membersList = AddStatusToTheDataOfEachGroupMember(groupData.members, allParticipantsObtained)
 
 
                 const groupDataNewObject = {
@@ -2696,6 +2786,7 @@ const ChatsContent = () => {
                     return
                 }
 
+                // dispatch(updatecontactsList(contactsObtained))
 
                 return
             }
@@ -2806,6 +2897,30 @@ const ChatsContent = () => {
 
             socket.on(UNLOCK_EXECUTED_BY_USER_TO_CONTACT_EVENT, ContactUnlockUser)
 
+
+            const ContactDeleteTheUser = async (data: ContactDeleteTheUserProps) => {
+
+                // aqui obtenemos la lista de contactos actualizada mas recientes del chat de contacto contacto en el que esta el usuario, ya que el contacto ejecuto un evento de eliminacion de contacto a este usuario, y tenemos actualizar los datos para evitar que haya errores
+                const contactDataObtained = await GetContactChatData(data.chat_id, data.contact_user_id)
+
+                // aqui obtenemos toda la lista de contactos
+                const contactListObtained = await
+                GetAllContacts()
+
+
+                if(contactData){
+                    console.log(contactDataObtained)
+                    dispatch(updateContactData(contactDataObtained))
+                    console.log(contactData)
+                }
+                
+                dispatch(updatecontactsList(contactListObtained))
+                console.log(contactsList)
+
+                
+            }
+
+            socket.on(DELETION_EXECUTED_BY_USER_TO_CONTACT_EVENT, ContactDeleteTheUser)
 
 
             const ContactIsInTheRecentMesssagesArea = async (data: ContactIsInTheRecentMesssagesAreaProps) => {
@@ -2962,10 +3077,8 @@ const ChatsContent = () => {
     useEffect(() => {
         const TOAST_LIMIT = 2
 
-        toasts
-            .filter(t => t.visible) // Only consider visible toasts
-            .filter((item, i) => i === TOAST_LIMIT) // Is toast index over limit
-            .forEach(t => toast.dismiss(t.id)) // Dismiss – Use toast.remove(t.id) removal without animation
+        LogicToLimitAmountOfToastOnScreen(toasts, TOAST_LIMIT, toast)
+
     }, [toasts])
 
     //#endregion
@@ -2980,9 +3093,7 @@ const ChatsContent = () => {
 
 
 
-    if (!groupChatsList || !contactsList || !loaderWaitingTime || !userData.user_id) {
-        return (<div className="w-full h-screen flex flex-col justify-center items-center  bg-zinc-900 gap-3 ">{iconsPageLogo[0].icon} <p className="text-white animate-pulse">Chatify</p></div>)
-    }
+
 
 
     const propsForChat: PropsForChat = {
@@ -3021,7 +3132,8 @@ const ChatsContent = () => {
         lockImage: lockImage,
         OpenNavigationMenuHandler: OpenNavigationMenuHandler,
         navigationMenuOpen: navigationMenuOpen,
-        infoForNavMenuChat: infoForNavMenuChat
+        infoForNavMenuChat: infoForNavMenuChat,
+        LogOutHandler: LogOutHandler
     }
 
     const propsForGroupChat: PropsForGroupChat = {
@@ -3038,6 +3150,7 @@ const ChatsContent = () => {
         isInvitationIdCopied: isInvitationIdCopied,
         OpenNavigationMenuHandler: OpenNavigationMenuHandler,
         navigationMenuOpen: navigationMenuOpen,
+        LogOutHandler: LogOutHandler
     }
 
 
@@ -3089,24 +3202,32 @@ const ChatsContent = () => {
         BlockThisContact: BlockThisContact,
         DeleteThisContact: DeleteThisContact,
         CloseSettingsOfContactChat: CloseSettingsOfContactChat,
+        BlockingForNotKnowingTheUser: BlockingForNotKnowingTheUser,
+    }
+
+    if (!loaderWaitingTime || !userData.user_id) {
+        return (<div className="w-full h-screen flex flex-col justify-center items-center  bg-zinc-900 gap-3 " data-testid="LoaderBody"><div data-testid="LoaderIcon">{iconsPageLogo[0].icon}</div><p className="text-white animate-pulse" data-testid="LoaderMessage">Chatify</p></div>)
     }
 
     return (
-        <div className="w-full h-screen bg-zinc-800 flex flex-col justify-center items-center">
-            <div className="w-full h-screen flex flex-row relative md:w-[97%] md:h-[95%]">
+        <div className="w-screen h-screen">
+            <div className="w-full h-screen bg-zinc-800 flex flex-col justify-center items-center">
+                <div className="w-full h-screen flex flex-row relative md:w-[97%] md:h-[95%]">
 
-                <MenuChat props={propsForMenuChat} />
-                <GroupMenuChat props={propsForGroupChat} />
+                    <MenuChat props={propsForMenuChat} />
+                    <GroupMenuChat props={propsForGroupChat} />
 
-                <Chat props={propsForChat} />
+                    <Chat props={propsForChat} />
 
-                {/* icon close */}
-                <div className={`${isOpenAChat || menuOpen ? "" : "hidden"} absolute w-9 h-9 flex flex-col justify-center items-center top-[16px] right-[3px] z-20 md:top-[12px] md:right-[14px] sm:top-[16px] sm:right-[20px] md:hidden`} onClick={MenuCloseHandler} >
-                    <div className={`relative w-7 h-8 flex flex-col justify-center items-center bg-zinc-950 rounded-xl text-white `}>
-                        {iconsForChatsPage[4].icon}</div>
+                    {/* icon close */}
+                    <div className={`${isOpenAChat || menuOpen ? "" : "hidden"} absolute w-9 h-9 flex flex-col justify-center items-center top-[16px] right-[3px] z-20 md:top-[12px] md:right-[14px] sm:top-[16px] sm:right-[20px] md:hidden`} onClick={MenuCloseHandler} >
+                        <div className={`relative w-7 h-8 flex flex-col justify-center items-center bg-zinc-950 rounded-xl text-white `}>
+                            {iconsForChatsPage[4].icon}</div>
+                    </div>
+
+                    <Commandwindows props={propsForCommandWindows} />
+
                 </div>
-
-                <Commandwindows props={propsForCommandWindows} />
 
 
                 {/* ************** nos falta implementar estas cards  en la vista y despues empezar con el la logica*/}

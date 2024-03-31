@@ -33,12 +33,12 @@ const Commandwindows: React.FC<Props> = ({ props }) => {
 
                 <div className={`${props.isOpenChannelCreationCard ? "" : "hidden"} relative w-[90%] h-[28.125rem] flex flex-col justify-center items-center gap-6  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
                     <h3>New Channel</h3>
-                    <form onSubmit={props.HandlerCreateNewChannel} ref={props.formToCreateChannel} className="w-[90%] flex flex-col justify-start  items-center gap-6 md:w-[80%] ">
-                        <input className="outline-none w-full p-3 text-sm rounded-lg bg-zinc-700" type="text" placeholder="Channel name" id="channelName" name="channelName" />
-                        <input className="outline-none w-full p-3 text-sm rounded-lg bg-zinc-700" type="text" placeholder="Password Channel" id="channelPassword" name="channelPassword" />
-                        <textarea className="outline-none w-full h-28 resize-none p-3 text-sm rounded-lg bg-zinc-700" name="channelDescription" id="channelDescription" placeholder="Channel Description"  ></textarea>
+                    <form onSubmit={props.HandlerCreateNewChannel} ref={props.formToCreateChannel} className="w-[90%] flex flex-col justify-start  items-center gap-6 md:w-[80%]" data-testid='FormToCreateChannel'> 
+                        <input className="outline-none w-full p-3 text-sm rounded-lg bg-zinc-700" type="text" placeholder="Channel name" id="channelName" data-testid='channelName' name="channelName" />
+                        <input className="outline-none w-full p-3 text-sm rounded-lg bg-zinc-700" type="text" placeholder="Password Channel" id="channelPassword" name="channelPassword" data-testid='channelPassword' />
+                        <textarea className="outline-none w-full h-28 resize-none p-3 text-sm rounded-lg bg-zinc-700" name="channelDescription" id="channelDescription" placeholder="Channel Description" data-testid='channelDescription' ></textarea>
                         <input className="outline-none w-[60%] py-3 bg-blue-500 shadow-md shadow-blue-500 rounded-lg md:w-32  md:self-end" type="button"
-                            value="Save" onClick={props.HandlerCreateNewChannel} />
+                            value="Save" onClick={props.HandlerCreateNewChannel} data-testid='channelSaveButton' />
                     </form>
                     <div className="absolute w-7 h-8 flex flex-col justify-center items-center top-[9px] right-[5px] text-white z-20 " onClick={props.CloseCardOfCreateChannel} >{iconsForChatsPage[4].icon}</div>
                 </div>
@@ -70,17 +70,17 @@ const Commandwindows: React.FC<Props> = ({ props }) => {
                     <div className="absolute w-7 h-8 flex flex-col justify-center items-center top-[9px] right-[5px] text-white z-20 " onClick={props.CloseCardOfJoinToChannel} >{iconsForChatsPage[4].icon}</div>
                 </div>
 
-                <div className={`${props.isOpenAddContactCard ? "" : "hidden"} relative w-[90%] h-96  flex flex-col pt-16 items-center mb-20 gap-8  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
+                <div className={`${props.isOpenAddContactCard ? "" : "hidden"} relative w-[90%] h-96  flex flex-col pt-16 items-center mb-20 gap-8  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`} data-testid='AddNewContactCard'>
                     <h3>Add New Contact</h3>
-                    <form onSubmit={props.RegisterNewContact} ref={props.formToCreateNewContact} className="relative w-[90%] flex flex-col justify-start  items-center gap-6 md:w-[80%]">
+                    <form onSubmit={props.RegisterNewContact} ref={props.formToCreateNewContact} className="relative w-[90%] flex flex-col justify-start  items-center gap-6 md:w-[80%]" data-testid='AddNewContactForm' >
                         <div className="w-full h-11 flex flex-row items-center gap-1 p-2 bg-zinc-600 rounded-md">
                             {iconsForChatsPage[1].icon}
-                            <input className="w-full text-xs bg-transparent outline-none" type="text" value={props.searchNewContactValue} placeholder="Search" onChange={props.HandlerSearchNewContacts} />
+                            <input className="w-full text-xs bg-transparent outline-none" type="text" value={props.searchNewContactValue} placeholder="Search" onChange={props.HandlerSearchNewContacts} data-testid='AddNewContactInput'  />
                         </div>
 
                         {props.searchNewContactValue && props.listOfNewContactSearched.length > 0 && (<>
                             <div className="absolute top-12 w-full h-max-64 flex flex-col justify-start items-center gap-3 p-3 bg-zinc-950 rounded-md">
-                                <div className="w-full h-full flex flex-col justify-start items-center gap-3 p-3 overflow-scroll">
+                                <div className="w-full h-full flex flex-col justify-start items-center  gap-3 p-3 overflow-y-auto scroll-bar" data-testid='UserFoundsList'>
                                     {
                                         props.listOfNewContactSearched.map((contactFound: any): any => {
                                             return <div id={contactFound.user_id} key={contactFound.user_id}
@@ -107,7 +107,7 @@ const Commandwindows: React.FC<Props> = ({ props }) => {
 
                         {props.searchNewContactValue && props.listOfNewContactSearched.length === 0 && (
                             <>
-                                <div className="absolute top-12 w-full h-max-64 flex flex-col justify-center items-center gap-3 p-3 bg-zinc-950 rounded-md">
+                                <div className="absolute top-12 w-full h-max-64 flex flex-col justify-center items-center gap-3 p-3 bg-zinc-950 rounded-md" data-testid='MatchesNotFoundCard' >
                                     <div className="w-full h-full flex flex-col justify-center items-center gap-3 p-3 bg-red-500 rounded-lg">
 
                                         <span className="p-3 text-sm rounded-lg ">matches not found</span>
@@ -121,11 +121,11 @@ const Commandwindows: React.FC<Props> = ({ props }) => {
                         {props.userSelectedToBeNewContact.user_id ? (
                             <>
                                 <h4>User Selected</h4>
-                                <div className=" w-full h-15 flex flex-row justify-start items-center gap-3 p-2 bg-zinc-600 rounded-md">
+                                <div className=" w-full h-15 flex flex-row justify-start items-center gap-3 p-2 bg-zinc-600 rounded-md" data-testid='UserSelectedDiv'>
                                     {/* <Image src={userSelectedToBeNewContact.profile_picture} alt="ContactProfile" width="45" height="45" className="rounded-md" /> */}
                                     <Image loading="eager" src={props.userSelectedToBeNewContact.profile_picture} alt="ContactProfile" width="45" height="45" className="rounded-md" />
                                     <p>{props.userSelectedToBeNewContact.username}</p>
-                                    <div className="w-7 h-7 flex felx-col justify-center items-center ml-auto rounded-full bg-zinc-700 hover:bg-red-500" onClick={props.DeleteContactSelected}>
+                                    <div className="w-7 h-7 flex felx-col justify-center items-center ml-auto rounded-full bg-zinc-700 hover:bg-red-500" onClick={props.DeleteContactSelected} data-testid='deleteContactSelectedDiv'>
                                         {iconsForChatsPage[4].icon}
                                     </div>
                                 </div>
@@ -138,7 +138,7 @@ const Commandwindows: React.FC<Props> = ({ props }) => {
                         }
 
 
-                        <button className="outline-none w-[50%] py-2 bg-blue-500 shadow-md shadow-blue-500 rounded-lg md:w-32" onClick={props.RegisterNewContact}>Add Contact</button>
+                        <button className="outline-none w-[50%] py-2 bg-blue-500 shadow-md shadow-blue-500 rounded-lg md:w-32" onClick={props.RegisterNewContact} data-testid='AddContactButton'>Add Contact</button>
 
 
                     </form>
@@ -147,9 +147,9 @@ const Commandwindows: React.FC<Props> = ({ props }) => {
                 </div>
 
 
-                <div className={`${props.isOpenCardToLeaveToGroup ? "" : "hidden"} relative w-[90%] h-52 flex flex-col justify-center items-center gap-6  bg-zinc-950 rounded-xl text-white md:w-[40%] xl:w-[30%]`}>
+                <div className={`${props.isOpenCardToLeaveToGroup ? "" : "hidden"} relative w-[90%] h-52 flex flex-col justify-center items-center gap-6  bg-zinc-950 rounded-xl text-white md:w-[40%] xl:w-[30%]`} data-testid='LeaveGroupCard'>
 
-                    <button onClick={props.LeaveTheGroup} className="w-[65%] py-3 bg-red-500 rounded-lg">Leave To Group</button>
+                    <button onClick={props.LeaveTheGroup} className="w-[65%] py-3 bg-red-500 rounded-lg" data-testid='LeaveGroupButton' >Leave To Group</button>
 
                     <div className="absolute w-7 h-8 flex flex-col justify-center items-center top-[9px] right-[5px] text-white z-20 " onClick={props.CloseLeaveToGroupCard} >{iconsForChatsPage[4].icon}</div>
 
@@ -173,7 +173,7 @@ const Commandwindows: React.FC<Props> = ({ props }) => {
             </div>
 
 
-            <div className={`${props.isOpenSettingsOfContactChat && userData.chat_type === CONTACT_CHAT ? "" : "hidden"} w-full h-screen fixed flex flex-col justify-center items-center  bg-fixed-for-add-channels z-40`}>
+            <div className={`${props.isOpenSettingsOfContactChat && userData.chat_type === CONTACT_CHAT ? "" : "hidden"} w-full h-screen fixed flex flex-col justify-center items-center  bg-fixed-for-add-channels z-40`} data-testid="ContactChatSettingsCard">
 
                 <div className={`${props.isOpenSettingsOfContactChat && userData.chat_type === CONTACT_CHAT ? "" : "hidden"} relative w-[90%] h-64 flex flex-col justify-center items-center py-24 gap-6  bg-zinc-950 rounded-xl text-white md:w-[50%] xl:w-[30%]`}>
 
@@ -181,7 +181,10 @@ const Commandwindows: React.FC<Props> = ({ props }) => {
 
                     <button onClick={props.DeleteChatHistory} className="w-[65%] py-3 bg-red-500 rounded-lg">Delete Chat History</button>
 
-                    <button onClick={contactData.is_blocked ? props.UnlockThisContact : props.BlockThisContact} className="w-[65%] py-3 bg-blue-500 rounded-lg">{contactData.is_blocked ? 'Unlock this Contact' : 'Block this Contact'}</button>
+                    {contactData && contactData.is_blocked && (<button onClick={props.UnlockThisContact} className="w-[65%] py-3 bg-blue-500 rounded-lg">Unlock this Contact</button>)}
+
+                    {contactData && !contactData.is_blocked && (<button onClick={!contactData.is_blocked && !contactData.is_contact_validated ? props.BlockingForNotKnowingTheUser : props.BlockThisContact} className="w-[65%] py-3 bg-blue-500 rounded-lg">'Block this Contact'</button>)}
+                    
 
                     <button onClick={props.DeleteThisContact} className="w-[65%] py-3 bg-blue-500 rounded-lg">Delete This Contact</button>
 

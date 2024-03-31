@@ -22,6 +22,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/components/forChats/ChatsContent.jsx", "src/components/forChats/ChatsContent.jsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/components/forChats/ChatsContent.jsx", "src/components/forChats/ChatsContent.jsx", "src/mocks/node.js"],
   "exclude": ["node_modules"]
 }

@@ -9,6 +9,7 @@ import { useAppDispatch } from '@/redux/hooks'
 import { updateGroupChatList } from '@/redux/features/groupChatsListSlice'
 import { AppDispatch } from '@/redux/store'
 import { updatecontactsList } from '@/redux/features/contactsListSlice'
+import { Toast, ToastType } from 'react-hot-toast'
 
 
 
@@ -144,7 +145,7 @@ export const TransformDateToEmitionDate = (dateToTransform: any) => {
 }
 
 
-export const GetUserData = async (nextRouter: any) => {
+export const GetUserData = async () => {
 
     try {
         const resp = await GetUserDataValidated()
@@ -298,7 +299,8 @@ export const GenerateMessageObjectToNotification = (contactData: contactBody, me
             type: type, // 'text'
             chatType: chatType, //'contact'
             message: message,
-            status: 'unread'
+            status: 'unread',
+            wasUserDeletedByHisContact: contactData.contact_user.was_User_Deleted_By_His_Contact
         }
 
     return messageObjectToBackend
@@ -334,7 +336,7 @@ export const GenerateMessageObjectToView = (messageId: string, userData: bodyUse
 export const UpdateGroupList = async (dispatch: AppDispatch) => {
 
     // aqui estamos obteniendo la nuevas lista de grupos y la actualizamos en la vista 
-    const groupsObtained: any = await GetAllGroupChats()
+    const groupsObtained = await GetAllGroupChats()
 
     dispatch(updateGroupChatList(groupsObtained))
 
@@ -818,7 +820,9 @@ export const AddNotificationsToContactList = (contactsObtained: contactBody[], n
 }
 
 
-export const AddStatusToTheDataOfEachGroupMember = (membersListObtained: memberBody[], allParticipantsObtained: chatParticipantBody[] ) => {
+export const AddStatusToTheDataOfEachGroupMember = (membersListObtained: memberBody[], allParticipantsObtained: chatParticipantBody[]) => {
+
+    if(!membersListObtained) return
 
     // aqui estamos mapeando los datos para obtener un nuevo array con el nuevo miembro del grupo y con los status de los miembros actualizado, mas el del nuevo miembro que parecera siempre en inactive  
     const membersList = membersListObtained.map((member) => {
@@ -853,3 +857,68 @@ export const UpdatePromotedMemberRoleToAdmin = (groupData: groupData, memberId: 
 
     return memberListUpdated
 }
+
+
+export const LogOutUser = () => {
+
+    try {
+
+        //Obtenemos la cadena de cookies convertida a un objeto js antes de hacer expirar todas las cookies
+        const cookiesObject = cookie.parse(document.cookie)
+
+        //Obtenemos la cadena de cookies y establecemos la fecha de todas las cookies como ya expirada para que se eliminen del navegador
+        
+        document.cookie.split(';').forEach(cookie => {
+            const name = cookie.split('=')[0].trim()
+            
+            //se actualiza todas las cookies con fecha ya expirada 
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+
+            //se actualiza solo el cookie access_token con fecha ya expirada 
+            // document.cookie = 'access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+        })
+
+        //Eliminamos la propiedad de nombre token en el objeto cookiesObject
+        delete cookiesObject.access_token
+        delete cookiesObject.refresh_token
+
+        //Se establece una nueva fecha de expiracion para todas las cookies al momento de actualizar el objeto document.cookie con el los cookies obtenidos en el objeto cookiesObject anteriormente
+        const cookiEexpirationDate = new Date()
+        cookiEexpirationDate.setDate(cookiEexpirationDate.getDate() + 1)
+
+        //Se establece una nueva path o ruta en la que fue creada la cookie, para todas las cookies
+        const cookiePath = '/'
+
+
+        //Atributos de cookies
+        const cookieAttributes = {
+            secure: false,
+            httpOnly: false,
+            path: cookiePath,
+            expires: cookiEexpirationDate
+        }
+
+        //Se genera la cadena de cookies con la que vamos actualizar el objeto document.cookie 
+        const updateCookiesObject = Object.keys(cookiesObject)
+            .map((name) => cookie.serialize(name, cookiesObject[name], cookieAttributes)).join('; ')
+
+        //Actualizamos el Objeto document.cookie con la nueva cadena de cookies 
+        document.cookie = updateCookiesObject;
+       
+        return
+
+    } catch (error) {
+        console.log(error)
+        throw error
+    }
+
+}
+
+
+export const LogicToLimitAmountOfToastOnScreen = (toasts: Toast[], TOAST_LIMIT: number, toast: any) => {
+    toasts
+            .filter(t => t.visible) // Only consider visible toasts
+            .filter((item, i) => i === TOAST_LIMIT) // Is toast index over limit
+            .forEach(t => toast.dismiss(t.id)) // Dismiss – Use toast.remove(t.id) removal without animation
+} 
+

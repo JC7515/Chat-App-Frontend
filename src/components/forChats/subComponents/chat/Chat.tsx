@@ -44,7 +44,7 @@ const Chat: React.FC<Props> = ({ props }) => {
                         userData.chat_type === CONTACT_CHAT && (<>
 
                             <div className="w-auto h-4/5 flex flex-row items-center gap-3 ">
-                                <Image alt="Contact Picture" src={props.contactData.contact_user.contact_blocked_you || !props.contactData.contact_user.profile_picture ? props.lockImage : props.contactData.contact_user.profile_picture} width='40' height="40" className="rounded-lg" />
+                                <Image alt="Contact Picture" src={ props.contactData && props.contactData.contact_user.contact_blocked_you || !props.contactData.contact_user.profile_picture ? props.lockImage : props.contactData.contact_user.profile_picture} width='40' height="40" className="rounded-lg" />
                                 <div className="flex flex-col gap-1">
                                     <h2 className="font-semibold text-base">{props.contactData.contact_user.username}</h2>
                                     <span className={`${props.contactData.contact_user.socket_id === 'empty' || props.contactData.contact_user.contact_blocked_you || props.contactData.is_blocked ? 'hidden' : ''} text-xs`}>{'online'}</span>
@@ -63,13 +63,13 @@ const Chat: React.FC<Props> = ({ props }) => {
 
                     {
                         userData.chat_type === CONTACT_CHAT && (<>
-                            <div onClick={props.OpenSettingsOfContactChat} className={`flex flex-row justify-center items-center w-8 h-8 absolute z-40 right-5`}>{iconsForChatsPage[11].icon}</div>
+                            <button onClick={props.OpenSettingsOfContactChat} className={`flex flex-row justify-center items-center w-8 h-8 absolute z-40 right-5`} data-testid='OpenSettingsButton'>{iconsForChatsPage[11].icon}</button>
                         </>)
 
                     }
 
                 </div>
-                <div ref={props.messagesContainer} onScroll={props.ValidateUserInRecentMessageArea} className={`${userData.chat_type === CONTACT_CHAT || userData.chat_type === GROUP_CHAT ? 'p-2 default-background-for-chat py-[50px] lg:pt-[10px] lg:pb-[0px] md:p-7 scroll-bar overflow-y-auto ' : ''} relative  w-full h-full flex flex-col justify-start items-start  gap-6  `}>
+                <div ref={props.messagesContainer} onScroll={props.ValidateUserInRecentMessageArea} className={`${userData.chat_type === CONTACT_CHAT || userData.chat_type === GROUP_CHAT ? 'p-2 default-background-for-chat py-[50px] md:p-7 lg:pt-[10px] lg:pb-[0px]  scroll-bar overflow-y-auto ' : ''} relative  w-full h-full flex flex-col justify-start items-start  gap-6  `}>
                     {/* este elemento sirve como una interseccion para que obtengamos una cantidad de mensajes antiguos cada vez que la vista del usuario pase por esta area */}
                     <div className="relative w-full h-[0.5px]">
                         <div ref={props.getOldMessagesArea} className="absolute w-full h-[60px] top-0 left-auto z-10"></div>
@@ -78,7 +78,7 @@ const Chat: React.FC<Props> = ({ props }) => {
                     {
 
                         userData.chat_type === '' && (<div className="w-full h-full flex flex-col justify-center items-center gap-7 ">
-                            <Image alt="logoForMessageArea Picture" src={props.logoForMessageArea}
+                            <Image alt="logoForMessageArea Picture" data-testid='PageStartImage' src={props.logoForMessageArea}
                                 width="280" height="280" className="w-[290px] h-[290px] md:w-[300px] md:h-[300px]" />
                             <div className="w-[80%] flex flex-col items-center justify-center gap-5 sm:w-[70%]">
                                 <p className="w-full text-zinc-100 text-center text-xl font-extralight md:text-2xl" >Download Chatify soon in ios and android application</p>
@@ -87,7 +87,7 @@ const Chat: React.FC<Props> = ({ props }) => {
                             </div>
                             {/* <button className="text-zinc-200 py-3 px-5 rounded-full font-light bg-blue-500 hover:bg-blue-200">Get more information</button>
                                  */}
-                            <div className="text-zinc-200 py-3 px-5 rounded-full font-light cursor-pointer bg-blue-500 hover:bg-blue-700 z-20 ">Get more information</div>
+                            <button className="text-zinc-200 py-3 px-5 rounded-full font-light cursor-pointer bg-blue-500 hover:bg-blue-700 z-20" data-testid="GetMoreInformationButton">Get more information</button>
                         </div>)
                     }
 
@@ -150,22 +150,22 @@ const Chat: React.FC<Props> = ({ props }) => {
                     </div>
                 </div>
                 {/* bg-zinc-700 */}
-                <div className={`${userData.chat_type === CONTACT_CHAT || userData.chat_type === GROUP_CHAT ? '' : 'hidden'} absolute w-full h-[70px] left-0 bottom-0 z-10 flex flex-col py-[10px]  justify-center items-center bg-zinc-700 lg:relative`}>
+                <div className={`${userData.chat_type === CONTACT_CHAT || userData.chat_type === GROUP_CHAT ? '' : 'hidden'} absolute w-full h-[70px] left-0 bottom-0 z-10 flex flex-col py-[10px]  justify-center items-center bg-zinc-700 md:relative lg:relative`}>
                     <div className="relative w-full h-full flex flex-row justify-center items-center">
-                        <div className="absolute bottom-[68px] right-3 w-28 flex flex-row justify-end items-end gap-4 z-10 md:right-20 md:bottom-[68px] ">
+                        <div className="absolute bottom-[68px] right-3 w-28 flex flex-row justify-end items-end gap-4 z-10 md:right-6 md:bottom-[68px] lg:right-20 lg:bottom-[68px] ">
                             {userData.chat_id ?
                                 (<>
-                                    <div className={`${!props.isUserInRecentMessagesArea && props.numberOfUnreadMessagesForIcon ? "" : "hidden"} w-11 h-11 flex flex-col justify-center items-center bg-blue-500 rounded-full font-medium`}>{!props.isUserInRecentMessagesArea && props.numberOfUnreadMessagesForIcon ? props.numberOfUnreadMessagesForIcon : ''}</div>
-                                    <div className={`${userData.chat_id && props.isUserInRecentMessagesArea ? "hidden" : ""} w-14 h-14 flex flex-col justify-center items-center bg-zinc-950 rounded-full hover:bg-zinc-800`} onClick={props.DownToRecentMessageAreaHandler}>{(userData.chat_id && props.isUserInRecentMessagesArea) ? <></> : iconsForChatsPage[6].icon}</div>
+                                    <div className={`${!props.isUserInRecentMessagesArea && props.numberOfUnreadMessagesForIcon ? "" : "hidden"} w-9 h-9 flex flex-col justify-center items-center bg-blue-500 rounded-full font-medium md:w-11 md:h-11`}>{!props.isUserInRecentMessagesArea && props.numberOfUnreadMessagesForIcon ? props.numberOfUnreadMessagesForIcon : ''}</div>
+                                    <div className={`${userData.chat_id && props.isUserInRecentMessagesArea ? "hidden" : ""} w-11 h-11 flex flex-col justify-center items-center bg-zinc-950 rounded-full hover:bg-zinc-800 md:w-14 md:h-14`}  onClick={props.DownToRecentMessageAreaHandler}>{(userData.chat_id && props.isUserInRecentMessagesArea) ? <></> : iconsForChatsPage[6].icon}</div>
                                 </>)
                                 :
                                 (<></>)
                             }
                         </div>
                         {/* bg-zinc-600 */}
-                        <form onSubmit={userData.chat_type === GROUP_CHAT ? props.GroupMessageSendingHandle : props.ContactMessageSendingHandle} className={`${userData.chat_id ? "" : "hidden"} relative h-14 w-[95%] flex flex-row justify-between items-center pr-2 bg-zinc-600 rounded-md`}>
-                            <input className="outline-none flex-1 bg-transparent text-xs p-3" type="text" placeholder="Type a message here" value={props.message} onChange={props.changeValueOfMessage} />
-                            <button className="w-9 h-10 flex flex-col justify-center items-center bg-blue-500 rounded-lg">
+                        <form onSubmit={userData.chat_type === GROUP_CHAT ? props.GroupMessageSendingHandle : props.ContactMessageSendingHandle} className={`${userData.chat_id ? "" : "hidden"} relative h-14 w-[95%] flex flex-row justify-between items-center pr-2 bg-zinc-600 rounded-md`} data-testid='MessageBarForm'>
+                            <input className="outline-none flex-1 bg-transparent text-xs p-3" type="text" placeholder="Type a message here" data-testid='MessageBar' value={props.message} onChange={props.changeValueOfMessage} />
+                            <button className="w-9 h-10 flex flex-col justify-center items-center bg-blue-500 rounded-lg" data-testid='SendMessagesButton'>
                                 {iconsForChatsPage[2].icon}
                             </button>
                         </form>
