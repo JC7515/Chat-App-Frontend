@@ -246,7 +246,7 @@ export const GetUserDataValidated = async () => {
 
 
 
-export const VerifyUserEmailValidationToken = async (token: (string | string[] )) => {
+export const VerifyUserEmailValidationToken = async (token: (string | string[])) => {
     try {
 
 
@@ -271,7 +271,7 @@ export const VerifyUserEmailValidationToken = async (token: (string | string[] )
         }
 
         return obtainedEmail
-    } catch (error) {
+    } catch (error: any) {
         return error
     }
 }

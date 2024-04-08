@@ -1,18 +1,19 @@
 'use client'
-import Link from "next/link"
-import { iconsEmailVerificationPage } from "./EmailVerification.data"
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
+import Link from "next/link"
+import { iconsEmailVerificationPage } from "./EmailVerification.data"
 import { GetUserData } from "@/helpers"
 import { useRouter } from "next/navigation"
 import { ResendVerifyEmail, VerifyUserEmailValidationToken } from "@/utils"
+import { validatedEmailUser, FormEvent } from "../types"
 
 
 const EmailVerification = () => {
 
   const urlParams = useParams()
 
-  const [userData, setUserData] = useState<any>()
+  const [userData, setUserData] = useState<validatedEmailUser>()
   const [theVerifyIsLoagin, setTheVerifyIsLoagin] = useState<boolean>(true)
   const [resultOfResendVerifyEmail, setResultOfResendVerifyEmail] = useState<string>('')
   const [emailToReSendValidation, setEmailToReSendValidation] = useState<string>('')
@@ -23,7 +24,7 @@ const EmailVerification = () => {
 
 
 
-  const ResendVerifyEmailHandler = async (e: any) => {
+  const ResendVerifyEmailHandler = async (e: FormEvent) => {
     setResultOfResendVerifyEmail('')
     setEmailForwardedSuccessfully(false)
 
@@ -47,14 +48,14 @@ const EmailVerification = () => {
 
 
   useEffect(() => {
-    // aqui estamos extrayendo el valor del parametro urlVerification de la url con el useParams()
-    const { urlVerification } = urlParams
-    console.log(urlVerification)
 
 
     const UserDataFunc = async () => {
+      // aqui estamos extrayendo el valor del parametro urlVerification de la url con el useParams()
+      const { urlVerification } = urlParams
+      console.log(urlVerification)
 
-      const resp: any = await VerifyUserEmailValidationToken(urlVerification)
+      const resp: validatedEmailUser = await VerifyUserEmailValidationToken(urlVerification)
 
 
       console.log(resp)
