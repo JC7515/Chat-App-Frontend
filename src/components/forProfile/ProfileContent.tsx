@@ -55,7 +55,7 @@ const ProfileContent = () => {
 
         const UserDataFunc = async () => {
             try {
-                const resp: any = await GetUserData(router)
+                const resp = await GetUserData()
                 dispatch(updateUserData(resp))
 
                 console.log(resp)
