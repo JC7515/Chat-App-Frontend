@@ -120,13 +120,13 @@ const AuthCard = () => {
             <div className='w-[25px]'>
               {iconsForLogin[0].icon}
             </div>
-            <input className='outline-none' type="email" name="email" id="email" data-testid="email" placeholder="Email" />
+            <input className='bg-transparent w-[210px] outline-none sm:w-ful' type="email" name="email" id="email" data-testid="email" placeholder="Email" />
           </div>
           <div className="w-full flex justify-between gap-2 border-zinc-300 border-2 rounded-md px-3 py-3">
             <div className='w-[25px]'>
               {iconsForLogin[1].icon}
             </div>
-            <input className='w-[200px] outline-none sm:w-full' type={inputPasswordStatus} name="password" id="password" data-testid="password" placeholder="Password" />
+            <input className='w-[200px] outline-none sm:w-full bg-transparent' type={inputPasswordStatus} name="password" id="password" data-testid="password" placeholder="Password" />
             <div className='w-[25px]' onClick={() => ShowPassword(setInputPasswordStatus, inputPasswordStatus)}>{inputPasswordStatus === 'password' ? iconsForLogin[2].icon : iconsForLogin[3].icon}</div>
           </div>
           <button className="w-full  flex flex-row justify-center items-center gap-2 py-3 bg-blue-500 rounded-md text-white">{!loginIsLoading ? (<>Start coding now</>) : (<>{iconsEmailVerificationPage[3].icon} loading</>)}</button>
