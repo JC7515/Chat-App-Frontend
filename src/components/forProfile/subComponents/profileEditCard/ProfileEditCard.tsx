@@ -66,7 +66,7 @@ const ProfileEditCard: React.FC<propsToProfile> = ({ProfileEditOnHandler, userDa
 
 
     return (
-        <section className="w-full h-screen flex flex-col items-center mt-16 gap-7 px-6 " >
+        <section className="w-full h-screen flex flex-col items-center mt-16 gap-7 px-6 bg-white " >
 
             <div className="w-full flex flex-col items-start gap-10 py-10 md:w-4/5 md:h-min-[580.54px] lg:w-max-[845.91px]">
 

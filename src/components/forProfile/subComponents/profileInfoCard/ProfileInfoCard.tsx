@@ -14,15 +14,15 @@ interface exampleOfButtonsOFTypesFile {
 const ProfileInfoCard: React.FC<propsToProfile> = ({ ProfileEditOnHandler, userData, WasSendEditFormFunc}) => {
 
     return (
-        <section className="w-full h-screen flex flex-col items-center mt-16 gap-14">
+        <section className="w-full h-screen flex flex-col items-center mt-16 gap-14 bg-white">
             <div className="w-full flex flex-col items-center gap-4">
-                <h1 className="text-3xl font-normal" >Personal info</h1>
-                <h2 className="text-base ">Basic info, like your name and photo</h2>
+                <h1 className="text-3xl font-normal text-black" >Personal info</h1>
+                <h2 className="text-base text-black">Basic info, like your name and photo</h2>
             </div>
             <div className="w-full flex flex-col md:w-4/5  md:h-m-[580.54px] lg:w-[845.91px] md:border-zinc-200 md:border-2 md:rounded-2xl ">
                 <div className="w-full flex flex-row justify-between items-center px-5 gap-4 md:px-11 md:border-y md:pt-10 md:pb-8">
                     <div className="flex-1 max-w-[190px] md:max-w-[350px]">
-                        <h2 className="text-3xl font-normal" >Profile</h2>
+                        <h2 className="text-3xl font-normal text-black" >Profile</h2>
                         <p className="text-zinc-500 text-sm" >Some info may be visible to other people</p>
                     </div>
                     <button className=" h-12 flex flex-row justify-center items-center border-zinc-400 border-2 rounded-2xl px-10  hover:bg-zinc-200" onClick={ProfileEditOnHandler}>
@@ -51,7 +51,7 @@ const ProfileInfoCard: React.FC<propsToProfile> = ({ ProfileEditOnHandler, userD
                         <p className="text-zinc-400">NAME</p>
                     </div>
                     <div className="flex-1 flex flex-row justify-end md:justify-start  ">
-                        <p>{userData.name}</p>
+                        <p className="text-black">{userData.name}</p>
                     </div>
                 </div>
 
@@ -60,7 +60,7 @@ const ProfileInfoCard: React.FC<propsToProfile> = ({ ProfileEditOnHandler, userD
                         <p className="text-zinc-400">USERNAME</p>
                     </div>
                     <div className="flex-1 flex flex-row justify-end md:justify-start  ">
-                        <p>{userData.username}</p>
+                        <p className="text-black">{userData.username}</p>
                     </div>
                 </div>
 
@@ -69,7 +69,7 @@ const ProfileInfoCard: React.FC<propsToProfile> = ({ ProfileEditOnHandler, userD
                         <p className="text-zinc-400">BIO</p>
                     </div>
                     <div className="flex-1 flex flex-row justify-end md:justify-start  ">
-                        <p>{userData.biography}</p>
+                        <p className="text-black" >{userData.biography}</p>
                     </div>
                 </div>
 
@@ -78,7 +78,7 @@ const ProfileInfoCard: React.FC<propsToProfile> = ({ ProfileEditOnHandler, userD
                         <p className="text-zinc-400">PHONE</p>
                     </div>
                     <div className="flex-1 flex flex-row justify-end md:justify-start  ">
-                        <p>{userData.phone}</p>
+                        <p className="text-black">{userData.phone}</p>
                     </div>
                 </div>
 
@@ -87,7 +87,7 @@ const ProfileInfoCard: React.FC<propsToProfile> = ({ ProfileEditOnHandler, userD
                         <p className="text-zinc-400">EMAIL</p>
                     </div>
                     <div className="flex-1 flex flex-row justify-end md:justify-start  ">
-                        <p>{userData.email}</p>
+                        <p className="text-black">{userData.email}</p>
                     </div>
                 </div>
 
@@ -96,14 +96,14 @@ const ProfileInfoCard: React.FC<propsToProfile> = ({ ProfileEditOnHandler, userD
                         <p className="text-zinc-400">PASSWORD</p>
                     </div>
                     <div className="flex-1 flex flex-row justify-end md:justify-start  ">
-                        <p>************</p>
+                        <p className="text-black">************</p>
                     </div>
                 </div>
 
             </div>
 
             <div>
-                <p>created by JuanProDev</p>
+                <p className="text-black">created by JuanProDev</p>
             </div>
         </section>
     )

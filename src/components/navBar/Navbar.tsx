@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from "next/navigation"
 import { userInfo } from '../infoUser/InfoUser'
-import { logoForLogin } from '../logo/Logo.data'
+import { logoForLogin, LOGO_TITLE } from '../logo/Logo.data'
 import { iconsArrowForNav, infoForMenuProfile } from './NavBar.data'
 import { bodyUserData } from '../types'
 import lockImage from '../../../public/lockImage.png'
@@ -58,11 +58,11 @@ const Navbar = () => {
             toast.dismiss(loadingToast)
 
             router.push('/')
-  
+
         } catch (error: any) {
             // aqui agregaremos logica de notificaciones toast en caso de error y que no se logre hacer el logOut con exito
             ErrorToast(LOG_OUT_FAILURE_ERROR_MESSAGE, "top-center")
-            
+
         }
 
 
@@ -72,7 +72,7 @@ const Navbar = () => {
         const TOAST_LIMIT = 2
 
         LogicToLimitAmountOfToastOnScreen(toasts, TOAST_LIMIT, toast)
-        
+
     }, [toasts])
 
 
@@ -98,19 +98,19 @@ const Navbar = () => {
         <nav className='relative w-full h-20 flex flex-row items-center justify-between px-6 bg-zinc-50'>
             <div className='flex flex-row justify-center gap-1 '>
                 {logoForLogin.icon}
-                <h2 className='flex flex-col justify-center'>DevPros</h2>
+                <h2 className='flex flex-col justify-center text-black'>{LOGO_TITLE}</h2>
             </div>
             <button className='flex flex-row items-center gap-3' onClick={openMenuHandler} data-testid="buttonToOpenOptionsList" >
+                <p className=" hidden md:flex md:flex-col md:justify-center text-black">{userData.username}</p>
                 {userData.profile_picture && (<>
                     <Image src={!userData.profile_picture ? lockImage : userData.profile_picture} className='rounded-lg' width="40" height="40" alt='profileImage' />
-                    <p className=" hidden md:flex md:flex-col md:justify-center">{userData.username}</p>
                 </>)
                 }
                 {!userData.profile_picture && (<>
                     <div className="animate-pulse w-52 h-10 rounded-xl bg-zinc-200"></div>
                 </>)
                 }
-                <div className=" hidden md:flex md:flex-col md:justify-center md:items-center">{
+                <div className="hidden md:flex md:flex-col md:justify-center md:items-center">{
 
                     menuOpen ? (iconsArrowForNav[1].icon) : (iconsArrowForNav[0].icon)
 
