@@ -29,7 +29,7 @@ import { updateGroupData } from "@/redux/features/groupData"
 import { updateUserData } from "@/redux/features/userDataSlice"
 import { type } from "os"
 
-const socket = io(`${process.env.NEXT_PUBLIC_API_URL_DEV}`, { autoConnect: false })
+const socket = io(`${process.env.NEXT_PUBLIC_API_URL_FOR_SOCKET}`, { autoConnect: false })
 
 
 const ChatsContent = () => {

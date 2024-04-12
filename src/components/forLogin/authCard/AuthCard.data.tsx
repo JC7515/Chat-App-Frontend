@@ -16,6 +16,7 @@ export const COOKIE_SECURE = false
 export const COOKIE_HTTPONLY = false
 export const COOKIE_EXPIRES = cookieExpirationDate
 
+
 export const COOKIE_OPTIONS: bodyCookieOptions = {
     secure: COOKIE_SECURE, //secure: false indica que las cookies también se enviarán a través de conexiones HTTP no seguras. Para una mayor seguridad, deberías establecer secure: true 
     httpOnly: COOKIE_HTTPONLY, //httpOnly: false significa que la cookie es accesible a través de JavaScript en el cliente,Para una mayor seguridad, deberías establecer httpOnly: true 

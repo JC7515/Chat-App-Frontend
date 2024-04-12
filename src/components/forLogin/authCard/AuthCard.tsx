@@ -120,7 +120,7 @@ const AuthCard = () => {
             <div className='w-[25px]'>
               {iconsForLogin[0].icon}
             </div>
-            <input className='bg-transparent w-[210px] outline-none sm:w-ful' type="email" name="email" id="email" data-testid="email" placeholder="Email" />
+            <input className='bg-transparent w-[210px] outline-none sm:w-full' type="email" name="email" id="email" data-testid="email" placeholder="Email" />
           </div>
           <div className="w-full flex justify-between gap-2 border-zinc-300 border-2 rounded-md px-3 py-3">
             <div className='w-[25px]'>

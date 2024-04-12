@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { iconsEmailVerificationPage } from '../emailVerificationPage/EmailVerification.data'
 import { LimitYear, ShowPassword } from '@/helpers'
 import { FormEvent } from '../types'
+import { iconsForSignUp } from './SignUpCard.data'
 
 
 const SignUpCard = () => {
@@ -28,7 +29,7 @@ const SignUpCard = () => {
 
     setsignUpIsLoading(true)
 
-    if(!form.current) return
+    if (!form.current) return
 
     const formData = new FormData(form.current)
     const payload = {
@@ -66,6 +67,8 @@ const SignUpCard = () => {
         setFailMessage(data.data.error)
         setsignUpIsLoading(false)
       }, 1100)
+
+      return
     }
 
     console.log('no paso del push')
@@ -98,33 +101,43 @@ const SignUpCard = () => {
 
       <form onSubmit={SendFormDataToBackend} ref={form} className="w-full flex flex-col gap-4">
         <div className="flex gap-2 border-zinc-300 border-2 rounded-md px-3 py-3" >
-          {iconsForLogin[0].icon}
+          {iconsForSignUp[2].icon}
           <input className='outline-none' type="text" name="name" id="name" placeholder="name and surname" />
         </div>
         <div className="flex gap-2 border-zinc-300 border-2 rounded-md px-3 py-3" >
-          {iconsForLogin[0].icon}
+          {iconsForSignUp[2].icon}
           <input className='outline-none' type="text" name="username" id="username" placeholder="User name" />
         </div>
         <div className="flex gap-2 border-zinc-300 border-2 rounded-md px-3 py-3" >
-          {iconsForLogin[0].icon}
+          {iconsForSignUp[0].icon}
           <input className='outline-none' type="email" name="email" id="email" placeholder="Email" />
         </div>
         <div className="flex gap-2 border-zinc-300 border-2 rounded-md px-3 py-3">
-          {iconsForLogin[1].icon}
-          <input className='outline-none' type={inputPasswordStatus} name="password" id="password" placeholder="Password" />
+          <div className='w-[25px]'>
+            {iconsForSignUp[1].icon}
+          </div>
+          <input className='bg-transparent w-[200px] outline-none sm:w-full' type={inputPasswordStatus} name="password" id="password" placeholder="Password" />
           <div onClick={() => ShowPassword(setInputPasswordStatus, inputPasswordStatus)}>{inputPasswordStatus === 'password' ? iconsForLogin[2].icon : iconsForLogin[3].icon}</div>
         </div>
+
+        <p className={`${failMessage ? '' : 'hidden'} text-red-400 text-xs`}>{failMessage}</p>
+
         <div className="flex gap-2 border-zinc-300 border-2 rounded-md px-3 py-3">
-          {iconsForLogin[1].icon}
-          <input className='outline-none' type={inputPasswordStatus} name="verifyPassword" id="verifyPassword" placeholder="Verify Password" />
+          <div className='w-[25px]'>
+            {iconsForSignUp[1].icon}
+          </div>
+          <input className='bg-transparent w-[200px] outline-none sm:w-full' type={inputPasswordStatus} name="verifyPassword" id="verifyPassword" placeholder="Verify Password" />
           <div onClick={() => ShowPassword(setInputPasswordStatus, inputPasswordStatus)}>{inputPasswordStatus === 'password' ? iconsForLogin[2].icon : iconsForLogin[3].icon}</div>
         </div>
+
+        <p className={`${failMessage ? '' : 'hidden'} text-red-400 text-xs`}>{failMessage}</p>
+
         <div className="flex gap-2 border-zinc-300 border-2 rounded-md px-3 py-3">
-          {iconsForLogin[1].icon}
+          {iconsForSignUp[3].icon}
           <input className='outline-none' type="date" name="birthday" id="birthday" max="2024-12-31" onKeyDown={LimitYear} onBlur={LimitYear} />
         </div>
         <div className="flex gap-2 border-zinc-300 border-2 rounded-md px-3 py-3">
-          {iconsForLogin[1].icon}
+          {iconsForSignUp[4].icon}
           <input className='outline-none' type="tel" name="phone" id="phone" placeholder="Phone" maxLength={10} />
         </div>
 
