@@ -58,10 +58,10 @@ const ProfileContent = () => {
                 const resp = await GetUserData()
                 dispatch(updateUserData(resp))
 
-                console.log(resp)
+                // console.log(resp)
 
             } catch (error) {
-                console.log(error)
+                // console.log(error)
                 router.push('/')
             }
         }

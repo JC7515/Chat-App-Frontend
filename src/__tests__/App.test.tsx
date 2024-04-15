@@ -494,9 +494,9 @@ describe('Chats Page', async () => {
         memberList.push(mockGroupMember)
         chatParticipantList.push(mockChatParticipantData)
 
-        console.log(groupChatList, 'push Group')
-        console.log(memberList, 'push Member')
-        console.log(chatParticipantList, 'push participant')
+        // console.log(groupChatList, 'push Group')
+        // console.log(memberList, 'push Member')
+        // console.log(chatParticipantList, 'push participant')
 
 
         await user.click(FormChannelSaveButton)
@@ -576,8 +576,8 @@ describe('Chats Page', async () => {
             groupChatList.splice(groupChatList.length - 1, 1)
             chatMessagesList.splice(0)
 
-            console.log(groupChatList, ' Delete groupChatList item')
-            console.log(chatMessagesList, ' Delete groupChatList item')
+            // console.log(groupChatList, ' Delete groupChatList item')
+            // console.log(chatMessagesList, ' Delete groupChatList item')
 
 
         }, {
@@ -707,7 +707,7 @@ describe('Chats Page', async () => {
 
             // aqui validamos que exista el contanedor del mensajes de matches not found en la card de la pagina
             const MatchesNotFoundCard = await screen.findByTestId('MatchesNotFoundCard')
-            console.log(MatchesNotFoundCard)
+            // console.log(MatchesNotFoundCard)
             expect(MatchesNotFoundCard).toBeDefined()
 
 
@@ -868,7 +868,7 @@ describe('Chats Page', async () => {
 
         contactChatList.splice(0)
 
-        console.log(contactChatList, ' Delete contactChatList item')
+        // console.log(contactChatList, ' Delete contactChatList item')
 
 
 

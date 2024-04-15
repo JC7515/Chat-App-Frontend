@@ -43,7 +43,7 @@ const SignUpCard = () => {
       create_at: new Date(),
     }
 
-    console.log(payload)
+    // console.log(payload)
 
     const url = `${process.env.NEXT_PUBLIC_API_URL}/v1/signUp`
 
@@ -55,12 +55,12 @@ const SignUpCard = () => {
       }
     })
 
-    console.log('paso del envio de informacion')
+    // console.log('paso del envio de informacion')
 
     const data = await resp.json()
 
 
-    console.log('no paso del objeto data')
+    // console.log('no paso del objeto data')
 
     if (data.status === "FAILED") {
       setTimeout(() => {
@@ -71,7 +71,7 @@ const SignUpCard = () => {
       return
     }
 
-    console.log('no paso del push')
+    // console.log('no paso del push')
 
 
     setTimeout(() => {

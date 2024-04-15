@@ -155,7 +155,7 @@ export const chatMessagesList: bodyMessageToShowInView[] = []
 export const userFoundsList: bodyUserData[] = []
 
 
-console.log(NEXT_PUBLIC_API_URL_DEV)
+// console.log(NEXT_PUBLIC_API_URL_DEV)
 
 export const handlers = [
     http.get(`${NEXT_PUBLIC_API_URL_DEV}/v1/auth/profile`, () => {

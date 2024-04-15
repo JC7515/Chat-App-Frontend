@@ -53,18 +53,18 @@ const EmailVerification = () => {
     const UserDataFunc = async () => {
       // aqui estamos extrayendo el valor del parametro urlVerification de la url con el useParams()
       const { urlVerification } = urlParams
-      console.log(urlVerification)
+      // console.log(urlVerification)
 
       const resp: validatedEmailUser = await VerifyUserEmailValidationToken(urlVerification)
 
 
-      console.log(resp)
+      // console.log(resp)
 
       //aqui estamos actualizando los datos de user data y ahciendo desaparecer el icono de loading 
       setTimeout(() => {
         setUserData(resp)
         setTheVerifyIsLoagin(false)
-        console.log(theVerifyIsLoagin)
+        // console.log(theVerifyIsLoagin)
       }, 500)
 
 

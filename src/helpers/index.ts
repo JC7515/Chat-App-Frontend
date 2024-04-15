@@ -163,14 +163,14 @@ export const ValidateIfUserExistsInGroup = async (groupId: string, userIdToSearc
     try {
         // aqui obtenemos siempre la cantidad de miembros restante que hay en el grupo, y si no quedan mas integrantes en el grupo este sera eliminado con todos los mensajes del grupo permanentemente
         const membersInGroup = await ValidateMembersOfGroup(groupId)
-        console.log(membersInGroup)
-        console.log(membersInGroup.length)
+        // console.log(membersInGroup)
+        // console.log(membersInGroup.length)
 
         if (membersInGroup.length === 0) return false
 
         const userExistsInTheGroup = membersInGroup.some((member: any) => member.user.user_id === userIdToSearch)
 
-        console.log(userExistsInTheGroup)
+        // console.log(userExistsInTheGroup)
 
         return userExistsInTheGroup
 
@@ -211,14 +211,14 @@ export const LimitYear = async (event: any) => {
         const currentMonth = inputValue.substring(5, 7);
         const currentDay = inputValue.substring(8, 10);
 
-        console.log(currentMonth)
-        console.log(currentDay)
+        // console.log(currentMonth)
+        // console.log(currentDay)
 
         const currentDate = `${currentYear}-${currentMonth}-${currentDay}`
 
-        console.log(currentDate)
+        // console.log(currentDate)
         event.target.value = currentDate
-        console.log(event.target.value)
+        // console.log(event.target.value)
 
     }
 }
@@ -417,7 +417,7 @@ export const ObtainContactListWithUpdatedNotificationNumber = (contactsList: con
 
         const notificationFound = notificationsObtained.filter((notification) => notification.chat_id === contactData.chat_id)
 
-        console.log(notificationFound)
+        // console.log(notificationFound)
 
         if (notificationFound) {
             const notificonsNumber = notificationFound.length
@@ -449,7 +449,7 @@ export const ObtainGroupListWithUpdatedNotificationNumber = (groupList: groupBod
 
         const notificationFound = notificationsObtained.filter((notification) => notification.chat_id === groupData.group.chat_id)
 
-        console.log(notificationFound)
+        // console.log(notificationFound)
 
         if (notificationFound) {
 
@@ -575,7 +575,7 @@ export const GetListOfMessagesWithIssueDate = (allMessages: (bodyMessageToShowIn
     const arrayOfMessagesToReturn: ChatMessages = []
     const arrayOfMemberJoined: (bodyMessageToShowInView | chatParticipantBody)[] = []
 
-    console.log(allMessages)
+    // console.log(allMessages)
 
     // aqui estamos integrando dentro del array de messages la fecha de emicion de cada bloque de mensajes  
 
@@ -592,7 +592,7 @@ export const GetListOfMessagesWithIssueDate = (allMessages: (bodyMessageToShowIn
 
         // esto se ejecuta si el elemento actual es de tipo unionDate
         if (message.message_type === "unionDate") {
-            console.log('se encontro que el elemento actual es de tipo unionDate')
+            // console.log('se encontro que el elemento actual es de tipo unionDate')
             arrayOfMemberJoined.push(message)
             return
         }
@@ -605,7 +605,7 @@ export const GetListOfMessagesWithIssueDate = (allMessages: (bodyMessageToShowIn
 
         // esto se ejecuta si el elemenento anterior no es de tipo texto
         if (allMessages[beforeIndex].message_type !== 'text' || message.message_type !== 'text') {
-            console.log('se encontro que el elemento anterior no es de tipo texto')
+            // console.log('se encontro que el elemento anterior no es de tipo texto')
             arrayOfMessagesToReturn.push(message)
             return
         }
@@ -670,7 +670,7 @@ export const GetListOfOldMessagesWithIssueDate = (allMessages: ChatMessages) => 
     const arrayOfMessagesToReturn: ChatMessages = []
     const arrayOfMemberJoined: ChatMessages = []
 
-    console.log(allMessages)
+    // console.log(allMessages)
 
     // aqui estamos integrando dentro del array de messages la fecha de emicion de cada bloque de mensajes  
 
@@ -687,7 +687,7 @@ export const GetListOfOldMessagesWithIssueDate = (allMessages: ChatMessages) => 
 
             // esto se ejecuta si el elemento actual es de tipo unionDate
             if (message.message_type === "unionDate") {
-                console.log('se encontro que el elemento actual es de tipo unionDate')
+                // console.log('se encontro que el elemento actual es de tipo unionDate')
                 arrayOfMemberJoined.push(message)
                 return
             }
@@ -700,7 +700,7 @@ export const GetListOfOldMessagesWithIssueDate = (allMessages: ChatMessages) => 
 
             // esto se ejecuta si el elemenento anterior no es de tipo texto
             if (allMessages[beforeIndex].message_type !== 'text' || message.message_type !== 'text') {
-                console.log('se encontro que el elemento anterior no es de tipo texto')
+                // console.log('se encontro que el elemento anterior no es de tipo texto')
                 arrayOfMessagesToReturn.push(message)
                 return
             }
@@ -777,7 +777,7 @@ export const AddNotificationsToGroupList = (groupsObtained: groupBody[], notific
 
         const notificonsNumber = notifications.length
 
-        console.log(notifications)
+        // console.log(notifications)
 
         return {
             ...groupData,
@@ -803,7 +803,7 @@ export const AddNotificationsToContactList = (contactsObtained: contactBody[], n
 
         const notificonsNumber = notifications.length
 
-        console.log(notifications)
+        // console.log(notifications)
 
         return {
             ...contactData,

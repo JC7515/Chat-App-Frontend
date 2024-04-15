@@ -21,8 +21,8 @@ const ProfileEditCard: React.FC<propsToProfile> = ({ProfileEditOnHandler, userDa
             const accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
             const formData = new FormData(editForm.current)
-                console.log(formData.get('profilePicture'))
-                console.log(formData.get('bio'))
+                // console.log(formData.get('profilePicture'))
+                // console.log(formData.get('bio'))
                 // profilePicture: formData.get('profilePicture'),
                 // userName: formData.get('userName'),
                 // bio: formData.get('bio'),
@@ -30,7 +30,7 @@ const ProfileEditCard: React.FC<propsToProfile> = ({ProfileEditOnHandler, userDa
                 // email: formData.get('email'),
                 // password: formData.get('password'),
 
-            console.log(formData)
+            // console.log(formData)
 
             const url = `${process.env.NEXT_PUBLIC_API_URL_DEV}/v1/profile`
 

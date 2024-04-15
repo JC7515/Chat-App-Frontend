@@ -187,7 +187,7 @@ export const GetUserDataValidated = async () => {
 
         let accessToken = GetCookieValue(ACCESS_TOKEN_NAME)
 
-        console.log(accessToken)
+        // console.log(accessToken)
 
         if (!accessToken) {
             // aqui iria un toas notification 
@@ -335,8 +335,8 @@ export const GetNewAccessToken = async () => {
             return data.data // { error: { message: 'error...'} }
         }
 
-        console.log(data.data.access_token)
-        console.log(data.data.refresh_token)
+        // console.log(data.data.access_token)
+        // console.log(data.data.refresh_token)
 
         // Obetenemos los valores de nuestros nuevos access_token y refresh_token
         const accessTokenValue: string = data.data.access_token

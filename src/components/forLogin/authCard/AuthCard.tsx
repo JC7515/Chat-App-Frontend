@@ -35,7 +35,7 @@ const AuthCard = () => {
       password: formData.get('password'),
     }
 
-    console.log(payload)
+    // console.log(payload)
 
     const url = `${process.env.NEXT_PUBLIC_API_URL}/v1/auth/login`
 
@@ -47,31 +47,31 @@ const AuthCard = () => {
       }
     })
 
-    console.log('paso del envio de informacion')
+    // console.log('paso del envio de informacion')
 
     const data = await resp.json()
 
-    console.log('no paso del objeto data')
+    // console.log('no paso del objeto data')
 
     if (data.status === "FAILED") {
       setTimeout(() => {
-        console.log('Registration failed try again.')
+        // console.log('Registration failed try again.')
         setFailMessage(data.data.error)
-        console.log(failMessage)
+        // console.log(failMessage)
         setloginIsLoading(false)
       }, 1100)
     }
 
-    console.log('entrando a la validacion de token')
+    // console.log('entrando a la validacion de token')
 
 
     if (data.status === "OK") {
 
       const tokens: bodyAccessTokens = data.data
 
-      console.log(COOKIE_EXPIRES)
-      console.log(data.data.access_token)
-      console.log(data.data.refresh_token)
+      // console.log(COOKIE_EXPIRES)
+      // console.log(data.data.access_token)
+      // console.log(data.data.refresh_token)
 
       // Obetenemos los valores del access_token y refresh_token
       const accessTokenValue: string = tokens.access_token

@@ -83,7 +83,7 @@ const Navbar = () => {
                 const resp: any = await GetUserData()
                 setUserData(resp)
 
-                console.log(resp)
+                // console.log(resp)
             }
 
             UserDataFunc()
